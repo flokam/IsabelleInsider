@@ -1,5 +1,5 @@
 theory Airplane
-imports AT
+imports AirInsider
 begin
 
 declare [[show_types]]
@@ -147,7 +147,7 @@ defines Airplane_getting_in_danger_def:
 
 (* For state transition we need Kripke structure *)
 fixes Air_states
-defines Air_states_def: "Air_states \<equiv> { I. Airplane_scenario \<rightarrow>\<^sub>i* I }"
+defines Air_states_def: "Air_states \<equiv> { I. Airplane_scenario \<rightarrow>\<^sub>n* I }"
 
 fixes Air_Kripke
 defines "Air_Kripke \<equiv> Kripke Air_states {Airplane_scenario}"
@@ -164,7 +164,7 @@ defines Airplane_not_in_danger_init_def:
 
 (* Kripke for two-person variant*)
 fixes Air_tp_states
-defines Air_tp_states_def: "Air_tp_states \<equiv> { I. Airplane_not_in_danger_init \<rightarrow>\<^sub>i* I }"
+defines Air_tp_states_def: "Air_tp_states \<equiv> { I. Airplane_not_in_danger_init \<rightarrow>\<^sub>n* I }"
 
 fixes Air_tp_Kripke
 defines "Air_tp_Kripke \<equiv> Kripke Air_tp_states {Airplane_not_in_danger_init}"
@@ -306,7 +306,7 @@ by (simp add: aid_graph_def ex_locs'_def enables_def local_policies_four_eyes_de
 (* Oktober 2017: realised that AG cannot be proved but leads to establishment
     of new necessary assumption *)
   
-lemma step0:  "Airplane_scenario \<rightarrow>\<^sub>i Airplane_getting_in_danger0"
+lemma step0:  "Airplane_scenario \<rightarrow>\<^sub>n Airplane_getting_in_danger0"
   apply (rule_tac l = cockpit and l' = door and a = "''Bob''" in  move)
   apply (rule refl)
   apply (simp add: Airplane_scenario_def)
@@ -324,7 +324,7 @@ lemma step0:  "Airplane_scenario \<rightarrow>\<^sub>i Airplane_getting_in_dange
   apply (rule ext)
    by (simp add: cabin_def door_def)
     
-lemma step1:  "Airplane_getting_in_danger0 \<rightarrow>\<^sub>i Airplane_getting_in_danger"
+lemma step1:  "Airplane_getting_in_danger0 \<rightarrow>\<^sub>n Airplane_getting_in_danger"
   apply (rule_tac l = door and l' = cabin and a = "''Bob''" in  move)
   apply (rule refl)
   apply (simp add: Airplane_getting_in_danger0_def)
@@ -340,7 +340,7 @@ lemma step1:  "Airplane_getting_in_danger0 \<rightarrow>\<^sub>i Airplane_gettin
   apply (rule ext)
   by (simp add: cabin_def door_def)
 
-(* The same proof as step0 only first apply movel instead of move *)
+(* The same proof as step0 only first apply movel instead of move 
 lemma step0m:  "Airplane_scenario \<rightarrow>\<^bsup>move\<^esup> Airplane_getting_in_danger0"
   apply (rule_tac l = cockpit and l' = door and a = "''Bob''" in  movel)
   apply (rule refl)
@@ -375,8 +375,9 @@ lemma step1m:  "Airplane_getting_in_danger0 \<rightarrow>\<^bsup>move\<^esup> Ai
     apply (simp add: Airplane_getting_in_danger0_def agid_graph_def aid_graph0_def move_graph_a_def door_def cockpit_def cabin_def)
   apply (rule ext)
   by (simp add: cabin_def door_def)
+*)
 
-lemma step2: "Airplane_getting_in_danger \<rightarrow>\<^sub>i Airplane_in_danger"
+lemma step2: "Airplane_getting_in_danger \<rightarrow>\<^sub>n Airplane_in_danger"
   apply (rule_tac l = door and a = "''Charly''" in  put_remote)
   apply (rule refl)
    apply (simp add: enables_def local_policies_def ex_creds_def door_def cockpit_def)
@@ -390,7 +391,8 @@ lemma step2: "Airplane_getting_in_danger \<rightarrow>\<^sub>i Airplane_in_dange
   apply (unfold Airplane_in_danger_def)
   apply (simp add: aid_graph_def agid_graph_def ex_locs'_def ex_locs_def)
   by force
-    
+
+(*
  lemma step2p: "Airplane_getting_in_danger \<rightarrow>\<^bsup>put\<^esup> Airplane_in_danger"
   apply (rule_tac l = door and a = "''Charly''" in  put_remotel)
   apply (rule refl)
@@ -405,47 +407,51 @@ lemma step2: "Airplane_getting_in_danger \<rightarrow>\<^sub>i Airplane_in_dange
   apply (unfold Airplane_in_danger_def)
   apply (simp add: agid_graph_def aid_graph_def ex_locs'_def ex_locs_def)
    by force
-     
-lemma step0r: "Airplane_scenario \<rightarrow>\<^sub>i* Airplane_getting_in_danger0"
-  apply (simp add: state_transition_refl_def)
+*)
+
+lemma step0r: "Airplane_scenario \<rightarrow>\<^sub>n* Airplane_getting_in_danger0"
+  apply (simp add: state_transition_in_refl_def)
 apply (insert step0)
 by auto
 
-lemma step1r: "Airplane_getting_in_danger0 \<rightarrow>\<^sub>i* Airplane_getting_in_danger"
-  apply (simp add: state_transition_refl_def)
+lemma step1r: "Airplane_getting_in_danger0 \<rightarrow>\<^sub>n* Airplane_getting_in_danger"
+  apply (simp add: state_transition_in_refl_def)
 apply (insert step1)
 by auto
 
-lemma step2r: "Airplane_getting_in_danger \<rightarrow>\<^sub>i* Airplane_in_danger"
-  apply (simp add: state_transition_refl_def)
+lemma step2r: "Airplane_getting_in_danger \<rightarrow>\<^sub>n* Airplane_in_danger"
+  apply (simp add: state_transition_in_refl_def)
 apply (insert step2)
 by auto
   
-theorem step_allr:  "Airplane_scenario \<rightarrow>\<^sub>i* Airplane_in_danger"
+theorem step_allr:  "Airplane_scenario \<rightarrow>\<^sub>n* Airplane_in_danger"
 apply (insert step0r step1r step2r)
-  by (simp add: state_transition_refl_def)
+  by (simp add: state_transition_in_refl_def)
 
 theorem aid_attack: "Air_Kripke \<turnstile> EF ({x. \<not> global_policy x ''Eve''})"
   apply (simp add: check_def Air_Kripke_def)
 apply (rule conjI)
-apply (simp add: Air_states_def state_transition_refl_def)
-apply (rule conjI)
+apply (simp add: Air_states_def state_transition_in_refl_def)
+(* apply (rule conjI) *)
 apply (rule EF_lem2b)
 apply (subst EF_lem000)
 apply (rule EX_lem0r)
 apply (subst EF_lem000)
-apply (rule EX_step)
+  apply (rule EX_step)
+  apply (unfold state_transition_infra_def)
 apply (rule step0)
 apply (rule EX_lem0r)
-apply (rule EX_step)
+  apply (rule EX_step)
+  apply (unfold state_transition_infra_def)
 apply (rule step1)
 apply (subst EF_lem000)
 apply (rule EX_lem0l)
-apply (rule EX_step)
+  apply (rule EX_step)
+  apply (unfold state_transition_infra_def)
 apply (rule step2)
 apply (rule CollectI)
-apply (rule ex_inv4)
-(* *)
+by (rule ex_inv4)
+(* 
 apply (unfold L_def)
 apply (unfold Airplane_scenario_def ex_graph_def local_policies_def)
 apply (rule_tac x = "cockpit" in exI)
@@ -453,16 +459,16 @@ apply (rule_tac x = "Actor ''Charly''" in exI)
 apply (rule_tac x = "put" in exI)
   apply (simp add: enables_def atI_def)
   by force
-    
+*)    
 
     
 (* Invariant: actors cannot be at two places at the same time*)    
-lemma actors_unique_loc_base: "\<lbrakk> I \<rightarrow>\<^sub>i I' ; 
+lemma actors_unique_loc_base: "\<lbrakk> I \<rightarrow>\<^sub>n I' ; 
        (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
        (\<forall> l. nodup a (agra (graphI I) l)) \<rbrakk> \<Longrightarrow> 
         (\<forall> l l'. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l'  \<longrightarrow> l = l') \<and>
          (\<forall> l. nodup a (agra (graphI I') l))"
-  apply (erule state_transition.cases)
+  apply (erule state_transition_in.cases)
      apply clarify
      defer
      apply clarify
@@ -607,7 +613,7 @@ lemma actors_unique_loc_base: "\<lbrakk> I \<rightarrow>\<^sub>i I' ;
   apply clarify
 by (simp add: atI_def)
       
-  lemma actors_unique_loc_step: "\<lbrakk> (I, I') \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* ; 
+  lemma actors_unique_loc_step: "\<lbrakk> (I, I') \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* ; 
        \<forall> a. (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
        (\<forall> l. nodup a (agra (graphI I) l)) \<rbrakk> \<Longrightarrow> 
         \<forall> a. (\<forall> l l'. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l'  \<longrightarrow> l = l') \<and>
@@ -684,7 +690,7 @@ lemma actors_unique_loc_aid_base:"
   by simp
     
 lemma actors_unique_loc_aid_step: 
-"(Airplane_not_in_danger_init, I)\<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>*
+"(Airplane_not_in_danger_init, I)\<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
  \<Longrightarrow>     \<forall> a. (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
          (\<forall> l. nodup a (agra (graphI I) l))"  
   apply (erule actors_unique_loc_step)
@@ -731,13 +737,13 @@ lemma Fend_1: "\<lbrakk> Actor ''Bob'' \<noteq> Actor ''Eve''; Actor ''Charly'' 
  by (simp add: ex_graph_def ex_creds_def ex_locs_def)
 *)
    
-lemma delta_invariant: "\<forall> z z'. z \<rightarrow>\<^sub>i z' \<longrightarrow>  delta(z) = delta(z')"    
+lemma delta_invariant: "\<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow>  delta(z) = delta(z')"    
   apply clarify
-  apply (erule state_transition.cases)
+  apply (erule state_transition_in.cases)
  by simp+
 
-lemma init_state_policy0: "\<lbrakk> \<forall> z z'. z \<rightarrow>\<^sub>i z' \<longrightarrow>  delta(z) = delta(z'); 
-                          (x,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* \<rbrakk> \<Longrightarrow> 
+lemma init_state_policy0: "\<lbrakk> \<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow>  delta(z) = delta(z'); 
+                          (x,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<rbrakk> \<Longrightarrow> 
                           delta(x) = delta(y)"  
   apply (rule mp)
   prefer 2
@@ -760,18 +766,18 @@ lemma init_state_policy0: "\<lbrakk> \<forall> z z'. z \<rightarrow>\<^sub>i z' 
     apply simp
 by assumption
  
-lemma init_state_policy: "\<lbrakk> (x,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* \<rbrakk> \<Longrightarrow> 
+lemma init_state_policy: "\<lbrakk> (x,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<rbrakk> \<Longrightarrow> 
                           delta(x) = delta(y)"  
   apply (rule init_state_policy0)
     apply (rule delta_invariant)
   by assumption
     
- lemma same_nodes0[rule_format]: "\<forall> z z'. z \<rightarrow>\<^sub>i z' \<longrightarrow> nodes(graphI z) = nodes(graphI z')"   
+ lemma same_nodes0[rule_format]: "\<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow> nodes(graphI z) = nodes(graphI z')"   
     apply clarify
-  apply (erule state_transition.cases)
+  apply (erule state_transition_in.cases)
   by (simp add: move_graph_a_def atI_def actors_graph_def nodes_def)+
  
-lemma same_nodes: "(I, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* 
+lemma same_nodes: "(I, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
                    \<Longrightarrow> nodes(graphI y) = nodes(graphI I)"  
   apply (erule rtrancl_induct)
    apply (rule refl)
@@ -781,9 +787,9 @@ lemma same_nodes: "(I, y) \<in> {(x::infrastructure, y::infrastructure). x \<rig
   by simp  
   
     
-lemma same_actors0[rule_format]: "\<forall> z z'. z \<rightarrow>\<^sub>i z' \<longrightarrow> actors_graph(graphI z) = actors_graph(graphI z')"   
+lemma same_actors0[rule_format]: "\<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow> actors_graph(graphI z) = actors_graph(graphI z')"   
     apply clarify
-  apply (erule state_transition.cases)
+  apply (erule state_transition_in.cases)
     defer
      apply (simp add: actors_graph_def nodes_def)
      apply (simp add: actors_graph_def nodes_def)
@@ -831,7 +837,7 @@ lemma same_actors0[rule_format]: "\<forall> z z'. z \<rightarrow>\<^sub>i z' \<l
    apply (case_tac "ya = l'")
 by simp+
   
-lemma same_actors: "(I, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* 
+lemma same_actors: "(I, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
               \<Longrightarrow> actors_graph(graphI I) = actors_graph(graphI y)"
   
     apply (erule rtrancl_induct)
@@ -874,7 +880,7 @@ by simp
 
 (* Lemma to apply the previous stuff within the lemma below *)
 
-lemma all_airplane_actors: "(Airplane_not_in_danger_init, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* 
+lemma all_airplane_actors: "(Airplane_not_in_danger_init, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
               \<Longrightarrow> actors_graph(graphI y) = airplane_actors"
 apply (insert Anid_airplane_actors)  
   apply (erule subst)  
@@ -886,7 +892,7 @@ lemma actors_at_loc_in_graph: "\<lbrakk> l \<in> nodes(graphI I); a  @\<^bsub>gr
   apply (simp add: atI_def actors_graph_def)
   by (rule exI, rule conjI, assumption, assumption)
     
-lemma not_en_get_Apnid: "(Airplane_not_in_danger_init,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* 
+lemma not_en_get_Apnid: "(Airplane_not_in_danger_init,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
          \<Longrightarrow> ~(enables y l (Actor a) get)"
   apply (subgoal_tac "delta y = delta(Airplane_not_in_danger_init)")
 apply (simp add: Airplane_not_in_danger_init_def enables_def local_policies_four_eyes_def)    
@@ -934,10 +940,10 @@ lemma test_graph_atI: "''Bob'' @\<^bsub>graphI Airplane_not_in_danger_init\<^esu
 lemma two_person_inv[rule_format]: "\<forall> z z'. (2::nat) \<le> length (agra (graphI z) cockpit) \<and> 
                           nodes(graphI z) = nodes(graphI Airplane_not_in_danger_init) \<and>
                           delta(z) = delta(Airplane_not_in_danger_init) \<and>
-                          (Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* \<and>
-                           z \<rightarrow>\<^sub>i z' \<longrightarrow> (2::nat) \<le> length (agra (graphI z') cockpit)"
+                          (Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<and>
+                           z \<rightarrow>\<^sub>n z' \<longrightarrow> (2::nat) \<le> length (agra (graphI z') cockpit)"
   apply clarify
-  apply (erule state_transition.cases)
+  apply (erule state_transition_in.cases)
     defer
      apply simp+
      apply (simp add: move_graph_a_def)
@@ -1101,7 +1107,7 @@ apply ((drule mp), rule Eve_precipitating_event)
 by blast
     
   
-lemma two_person_inv1[rule_format]: "(Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* 
+lemma two_person_inv1[rule_format]: "(Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
                            \<Longrightarrow> (2::nat) \<le> length (agra (graphI z) cockpit)"  
   apply (rule mp)
   prefer 2
@@ -1149,7 +1155,7 @@ lemma no_dup_set_list_num_eq[rule_format]:
    apply (erule nodup_notin)
 by simp
     
-lemma two_person_set_inv[rule_format]: "(Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* 
+lemma two_person_set_inv[rule_format]: "(Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
                            \<Longrightarrow> (2::nat) \<le> card (set (agra (graphI z) cockpit))"  
   apply (subgoal_tac "card (set (agra (graphI z) cockpit)) = length(agra (graphI z) cockpit)")
    apply (erule ssubst, rule two_person_inv1)
@@ -1182,10 +1188,10 @@ lemma Set_all_unique: "\<lbrakk> S \<noteq> {}; (\<forall> x \<in> S. x = c) \<r
     
 lemma airplane_actors_inv0[rule_format]: 
     "\<forall> z z'. (\<forall>h::char list \<in> set (agra (graphI z) cockpit). h \<in> airplane_actors) \<and> 
-          (Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* \<and>
-            z \<rightarrow>\<^sub>i z' \<longrightarrow>  (\<forall>h::char list\<in>set (agra (graphI z') cockpit). h \<in> airplane_actors)"     
+          (Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<and>
+            z \<rightarrow>\<^sub>n z' \<longrightarrow>  (\<forall>h::char list\<in>set (agra (graphI z') cockpit). h \<in> airplane_actors)"     
   apply clarify
-  apply (erule state_transition.cases)
+  apply (erule state_transition_in.cases)
     defer
      apply (simp)+
   apply (simp add: move_graph_a_def)
@@ -1224,7 +1230,7 @@ lemma airplane_actors_inv0[rule_format]:
   apply (drule all_airplane_actors)
     by (erule subst)
  
-lemma airplane_actors_inv: "(Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* 
+lemma airplane_actors_inv: "(Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
                            \<Longrightarrow>  \<forall>h::char list\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors"     
       apply (rule mp)
   prefer 2
@@ -1245,7 +1251,7 @@ apply blast
 
     
 lemma Eve_not_in_cockpit: "(Airplane_not_in_danger_init, I)
-       \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* \<Longrightarrow>
+       \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
        x \<in> set (agra (graphI I) cockpit) \<Longrightarrow> x \<noteq> ''Eve''"
   apply (drule airplane_actors_inv)
   apply (simp add: airplane_actors_def)
@@ -1253,7 +1259,7 @@ lemma Eve_not_in_cockpit: "(Airplane_not_in_danger_init, I)
     by force
     
 (* 2 person invariant implies that there is always some x in cockpit x \<noteq> Eve *)      
-lemma tp_imp_control: "(Airplane_not_in_danger_init,I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* 
+lemma tp_imp_control: "(Airplane_not_in_danger_init,I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
         \<Longrightarrow>  (? x :: identity.  x @\<^bsub>graphI I\<^esub> cockpit \<and> Actor x \<noteq> Actor ''Eve'')"
   apply (frule two_person_set_inv)
     apply (unfold atI_def)
@@ -1292,7 +1298,7 @@ lemma tp_imp_control: "(Airplane_not_in_danger_init,I) \<in> {(x::infrastructure
      apply (simp add: UasI_def)
     by (erule Eve_not_in_cockpit)
   
-lemma Fend_2:    "(Airplane_not_in_danger_init,I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>* \<Longrightarrow>
+lemma Fend_2:    "(Airplane_not_in_danger_init,I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
          \<not> enables I cockpit (Actor ''Eve'') put"
       apply (insert cockpit_foe_control)
   apply (simp add: foe_control_def)
@@ -1304,8 +1310,8 @@ theorem Four_eyes_no_danger: "Air_tp_Kripke \<turnstile> AG ({x. global_policy x
   apply (simp add: Air_tp_Kripke_def check_def)
   apply (rule conjI)
    apply (simp add: Airplane_not_in_danger_init_def Air_tp_states_def
-                    state_transition_refl_def)
-  apply (rule conjI)
+                    state_transition_in_refl_def)
+(*  apply (rule conjI) *)
    apply (unfold AG_def)
    apply (simp add: gfp_def)
     apply (rule_tac x = "{(x :: infrastructure) \<in> states Air_tp_Kripke. ~(''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}" in exI)
@@ -1316,7 +1322,7 @@ theorem Four_eyes_no_danger: "Air_tp_Kripke \<turnstile> AG ({x. global_policy x
     apply (drule CollectD)
     apply (rule CollectI)
     apply (erule conjE)
-      apply (simp add: Air_tp_Kripke_def Air_tp_states_def state_transition_refl_def)
+      apply (simp add: Air_tp_Kripke_def Air_tp_states_def state_transition_in_refl_def)
     apply (erule Fend_2)
        apply (rule conjI)
     apply (rule subsetI)
@@ -1329,34 +1335,55 @@ theorem Four_eyes_no_danger: "Air_tp_Kripke \<turnstile> AG ({x. global_policy x
     apply (simp add: Air_tp_states_def)
      apply (simp add: Airplane_not_in_danger_init_def state_transition_refl_def)
     apply (simp add: ex_graph_def atI_def)
-   apply (rule conjI)
-    apply (erule conjE)
-    apply (simp add:  Air_tp_Kripke_def Air_tp_states_def state_transition_refl_def)
-          apply (rule rtrancl_trans)
+(*   apply (rule conjI)
+    apply (erule conjE) *)
+    apply (simp add:  Air_tp_Kripke_def Air_tp_states_def state_transition_in_refl_def)
+   apply (simp add: ex_graph_def atI_def)
+    apply (simp add:  Air_tp_Kripke_def Air_tp_states_def state_transition_in_refl_def)
+  apply (rule conjI)
+ (*         apply (rule rtrancl_trans)
        apply assumption
-      apply blast
+      apply blast *)
+    apply (subgoal_tac "(Airplane_not_in_danger_init, xa)
+       \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*")
+    apply (simp add: atI_def)
+   apply (erule conjE)
+  apply (unfold state_transition_infra_def state_transition_in_refl_def)
+   apply (erule rtrancl_into_rtrancl)
+   apply (rule CollectI)
+   apply simp
 (* remaining case (apart from L Airplane_not_in_danger_init): ...
        isin cockpit ''air'' \<Longrightarrow>
        x \<in> states Air_tp_Kripke \<and> \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit \<Longrightarrow>
        xa \<in> Collect (state_transition x) \<Longrightarrow> \<not> ''Eve'' @\<^bsub>graphI xa\<^esub> cockpit *)
-   apply (simp add: Air_tp_Kripke_def Air_tp_states_def)
     apply (subgoal_tac "(Airplane_not_in_danger_init, xa)
-       \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>i y}\<^sup>*")
-    apply (simp add: atI_def)
-    apply (rule notI)
+       \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*")
+  apply (rule notI)
+  apply (simp add: atI_def)
+  apply (erule conjE)
+apply (drule Eve_not_in_cockpit)
+    apply assumption
+   apply simp
+  apply (rule rtrancl_trans)
+  apply (erule conjE)
+       apply assumption
+by blast
+
+(*    
     apply (drule Eve_not_in_cockpit)
      apply assumption
     apply (rotate_tac -1)
     apply (erule notE)
     apply (rule refl)
-    apply (erule conjE)
-   apply (simp add: state_transition_refl_def)
-   apply (erule rtrancl_into_rtrancl)
-   apply (rule CollectI)
-   apply simp
+    apply (erule conjE) *)
+
+
   (* L is in our HOL-CTL just necessary to show that the model is not empty
      by showing that there is at least some instance in the base state that 
-     fulfills the enables predicate *)
+     fulfills the enables predicate 
+  apply (rule notI)
+  apply (erule conjE)
+    apply (drule Eve_not_in_cockpit)
   apply (unfold L_def)
   apply (rule_tac x = cockpit in exI)
   apply (rule_tac x = "Actor ''Charly''" in exI)
@@ -1366,6 +1393,7 @@ theorem Four_eyes_no_danger: "Air_tp_Kripke \<turnstile> AG ({x. global_policy x
                 airplane_actors_def)
   apply (rule_tac x = "''Charly''" in exI)
   by simp
+*)
 
 end
   

@@ -1,5 +1,5 @@
 theory AirInsider
-imports Main
+imports AT
 begin
 datatype action = get | move | eval |put
 typedecl actor 
@@ -146,4 +146,75 @@ where "misbehaviour I \<equiv> {(t,a,a'). \<exists> b. UasI a b \<and> enables I
 definition misbehaviour :: "infrastructure \<Rightarrow> (location * actor * action)set"
 where "misbehaviour I \<equiv> -(behaviour I)"
 
+primrec del :: "['a, 'a list] \<Rightarrow> 'a list"
+where 
+del_nil: "del a [] = []" |
+del_cons: "del a (x#ls) = (if x = a then ls else x # (del a ls))"
+
+primrec jonce :: "['a, 'a list] \<Rightarrow> bool"
+where
+jonce_nil: "jonce a [] = False" |
+jonce_cons: "jonce a (x#ls) = (if x = a then (a \<notin> (set ls)) else jonce a ls)"
+
+primrec nodup :: "['a, 'a list] \<Rightarrow> bool"
+  where 
+    nodup_nil: "nodup a [] = True" |
+    nodup_step: "nodup a (x # ls) = (if x = a then (a \<notin> (set ls)) else nodup a ls)"
+
+definition move_graph_a :: "[identity, location, location, igraph] \<Rightarrow> igraph"
+where "move_graph_a n l l' g \<equiv> Lgraph (gra g) 
+                    (if n \<in> set ((agra g) l) &  n \<notin> set ((agra g) l') then 
+                     ((agra g)(l := del n (agra g l)))(l' := (n # (agra g l')))
+                     else (agra g))(cgra g)(lgra g)"
+
+inductive state_transition_in :: "[infrastructure, infrastructure] \<Rightarrow> bool" ("(_ \<rightarrow>\<^sub>n _)" 50)
+where
+  move: "\<lbrakk> G = graphI I; a @\<^bsub>G\<^esub> l; l \<in> nodes G; l' \<in> nodes G;
+          (a) \<in> actors_graph(graphI I); enables I l' (Actor a) move;
+         I' = Infrastructure (move_graph_a a l l' (graphI I))(delta I) \<rbrakk> \<Longrightarrow> I \<rightarrow>\<^sub>n I'" 
+| get : "\<lbrakk> G = graphI I; a @\<^bsub>G\<^esub> l; a' @\<^bsub>G\<^esub> l; has G (Actor a, z);
+        enables I l (Actor a) get;
+        I' = Infrastructure 
+                   (Lgraph (gra G)(agra G)
+                           ((cgra G)(Actor a' := 
+                                (z # (fst(cgra G (Actor a'))), snd(cgra G (Actor a')))))
+                           (lgra G))
+                   (delta I)
+         \<rbrakk> \<Longrightarrow> I \<rightarrow>\<^sub>n I'"
+| put : "\<lbrakk> G = graphI I; a @\<^bsub>G\<^esub> l; enables I l (Actor a) put;
+        I' = Infrastructure 
+                  (Lgraph (gra G)(agra G)(cgra G)
+                          ((lgra G)(l := [z])))
+                   (delta I) \<rbrakk>
+         \<Longrightarrow> I \<rightarrow>\<^sub>n I'"  
+| put_remote : "\<lbrakk> G = graphI I; enables I l (Actor a) put;
+        I' = Infrastructure 
+                  (Lgraph (gra G)(agra G)(cgra G)
+                            ((lgra G)(l := [z])))
+                    (delta I) \<rbrakk>
+         \<Longrightarrow> I \<rightarrow>\<^sub>n I'"
+  
+(* show that this infrastructure is a state as given in MC.thy *)
+instantiation "infrastructure" :: state
+begin
+
+definition 
+   state_transition_infra_def: "(i \<rightarrow>\<^sub>i i') =  (i \<rightarrow>\<^sub>n (i' :: infrastructure))"
+
+
+instance
+  by (rule MC.class.MC.state.of_class.intro)
+
+definition state_transition_in_refl ("(_ \<rightarrow>\<^sub>n* _)" 50)
+where "s \<rightarrow>\<^sub>n* s' \<equiv> ((s,s') \<in> {(x,y). state_transition_in x y}\<^sup>*)"
+
+(* show that if I \<rightarrow> I' then policy is preserved?! Should be doable since 
+   in all rules always enables holds and policy does not change. Requires
+   a notion of I \<Turnstile> ... *)
+
+lemma del_del[rule_format]: "n \<in> set (del a S) \<longrightarrow> n \<in> set S"
+  apply (induct_tac S)
+  by auto
+
+end
 end
