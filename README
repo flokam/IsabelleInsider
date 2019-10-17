@@ -1,0 +1,6 @@
+These are the sources for isabelle 2019 for the Airplane Insider case study.
+They use the generic framework of Modelchecking MC.thy and the AttackTree
+theory AT.thy.
+On top of those are built
+AirInsider.thy: formalisation of the Insider theory
+Airplane.thy: the actual case study of the Insider attack on a passenger airplane
