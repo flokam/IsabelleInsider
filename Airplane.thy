@@ -198,22 +198,22 @@ by (simp add: Airplane_scenario_def global_policy_def airplane_actors_def)
 lemma ex_inv2: "global_policy Airplane_scenario ''Charly''"
 by (simp add: Airplane_scenario_def global_policy_def airplane_actors_def)
 
+
 lemma ex_inv3: "\<not>global_policy Airplane_scenario ''Eve''"
-apply (simp add: Airplane_scenario_def global_policy_def)
-apply (rule conjI)
-apply (simp add: airplane_actors_def)
-apply (subgoal_tac "Actor ''Charly'' = Actor ''Eve''")
-apply (erule subst)
-apply (simp add: Airplane_scenario_def enables_def ex_creds_def local_policies_def ex_graph_def)
-apply (insert Insider_Eve)
-apply (unfold Insider_def)
-apply ((drule mp), rule Eve_precipitating_event)
-   apply (simp add: UasI_def)
- apply (rule_tac x = "''Charly''" in exI)
-apply (simp add: cockpit_def atI_def)
-apply ((drule mp), rule Eve_precipitating_event)
-apply (simp add: UasI_def)
-done
+proof (simp add: Airplane_scenario_def global_policy_def, rule conjI)
+  show "''Eve'' \<notin> airplane_actors" by (simp add: airplane_actors_def)
+next show 
+  "enables (Infrastructure ex_graph local_policies) cockpit (Actor ''Eve'') put"
+  proof -
+    have a: "Actor ''Charly'' = Actor ''Eve''" 
+      by (insert Insider_Eve, unfold Insider_def, (drule mp), 
+          rule Eve_precipitating_event, simp add: UasI_def)
+    show ?thesis   
+      by (insert a, simp add: Airplane_scenario_def enables_def ex_creds_def local_policies_def ex_graph_def,
+         insert Insider_Eve, unfold Insider_def, (drule mp), rule Eve_precipitating_event, 
+         simp add: UasI_def, rule_tac x = "''Charly''" in exI, simp add: cockpit_def atI_def)
+  qed
+qed
 
 (* show Safety for Airplane_scenario*)
 lemma Safety: "Safety Airplane_scenario (''Alice'')"
@@ -232,15 +232,11 @@ by (simp add: inj_eq)
 (* declare [[show_types = true]] *)
 
 lemma locl_lemma0: "isin G door ''norm'' \<noteq> isin G door ''locked''"
-apply (rule_tac f = "isin G door" in inj_lem)
-thm isin_inj
-apply (simp add: isin_inj)
-by simp
+by (rule_tac f = "isin G door" in inj_lem, simp add: isin_inj, simp)
 
 
 lemma locl_lemma: "isin G door ''norm'' = (\<not> isin G door ''locked'')"
-apply (insert locl_lemma0)
-by blast
+by (insert locl_lemma0, blast)
 
 lemma Security: "Security Airplane_scenario s"
 by (simp add: Airplane_scenario_def Security_def enables_def local_policies_def ex_locs_def locl_lemma)
@@ -251,22 +247,23 @@ by (rule Security)
 
 (* show that pilot can get out of cockpit *)
 lemma pilot_can_leave_cockpit: "(enables Airplane_scenario cabin (Actor ''Bob'') move)"
-apply (simp add: Airplane_scenario_def Security_def ex_creds_def ex_graph_def enables_def local_policies_def ex_locs_def)
-by (simp add: cockpit_def cabin_def door_def)
+  by (simp add: Airplane_scenario_def Security_def ex_creds_def ex_graph_def enables_def 
+                local_policies_def ex_locs_def, simp add: cockpit_def cabin_def door_def)
 
 (* show that in Airplane_in_danger copilot can still do put = put position to ground *)
 lemma ex_inv4: "\<not>global_policy Airplane_in_danger (''Eve'')"
-apply (simp add: Airplane_in_danger_def global_policy_def)
-apply (unfold cockpit_def)
-apply (rule conjI)
-apply (simp add: airplane_actors_def)
-apply (subgoal_tac "Actor ''Charly'' = Actor ''Eve''")
-apply (erule subst)
-apply (simp add: enables_def local_policies_def cockpit_def aid_graph_def atI_def)
-apply (insert Insider_Eve)
-apply (unfold Insider_def)
-apply ((drule mp), rule Eve_precipitating_event)
-by (simp add: UasI_def)
+proof (simp add: Airplane_in_danger_def global_policy_def, rule conjI)
+  show "''Eve'' \<notin> airplane_actors" by (simp add: airplane_actors_def)
+next show "enables (Infrastructure aid_graph local_policies) cockpit (Actor ''Eve'') put"
+  proof -
+    have a: "Actor ''Charly'' = Actor ''Eve''" 
+      by (insert Insider_Eve, unfold Insider_def, (drule mp), 
+          rule Eve_precipitating_event, simp add: UasI_def)
+    show ?thesis
+     apply (insert a, erule subst)
+     by (simp add: enables_def local_policies_def cockpit_def aid_graph_def atI_def)
+ qed
+qed
 
 
 (* The following two props should just be the opposite *) 
@@ -303,8 +300,11 @@ by (simp add: aid_graph_def ex_locs'_def enables_def local_policies_four_eyes_de
 (* 5. July 2017: finished step proofs *)
 (* August and September 2017: reworked semantics of tspace and lspace; work on
                  AG property example *) 
-(* Oktober 2017: realised that AG cannot be proved but leads to establishment
+(* October 2017: realised that AG cannot be proved but leads to establishment
     of new necessary assumption *)
+(* October 2018: upgraded to fully fledged Kripke structures with a generic state
+    typed and allows instantiating this to airplane infrastructure as state.
+   Change is visible in \<rightarrow>\<^sub>n instead of \<rightarrow>\<^sub>i as before *)  
   
 lemma step0:  "Airplane_scenario \<rightarrow>\<^sub>n Airplane_getting_in_danger0"
   apply (rule_tac l = cockpit and l' = door and a = "''Bob''" in  move)
@@ -410,23 +410,16 @@ lemma step2: "Airplane_getting_in_danger \<rightarrow>\<^sub>n Airplane_in_dange
 *)
 
 lemma step0r: "Airplane_scenario \<rightarrow>\<^sub>n* Airplane_getting_in_danger0"
-  apply (simp add: state_transition_in_refl_def)
-apply (insert step0)
-by auto
+  by (simp add: state_transition_in_refl_def, insert step0, auto)
 
 lemma step1r: "Airplane_getting_in_danger0 \<rightarrow>\<^sub>n* Airplane_getting_in_danger"
-  apply (simp add: state_transition_in_refl_def)
-apply (insert step1)
-by auto
+  by (simp add: state_transition_in_refl_def, insert step1, auto)
 
 lemma step2r: "Airplane_getting_in_danger \<rightarrow>\<^sub>n* Airplane_in_danger"
-  apply (simp add: state_transition_in_refl_def)
-apply (insert step2)
-by auto
+  by (simp add: state_transition_in_refl_def, insert step2, auto)
   
 theorem step_allr:  "Airplane_scenario \<rightarrow>\<^sub>n* Airplane_in_danger"
-apply (insert step0r step1r step2r)
-  by (simp add: state_transition_in_refl_def)
+  by (insert step0r step1r step2r, simp add: state_transition_in_refl_def)
 
 theorem aid_attack: "Air_Kripke \<turnstile> EF ({x. \<not> global_policy x ''Eve''})"
   apply (simp add: check_def Air_Kripke_def)
