@@ -55,22 +55,7 @@ defines ex_graph_def: "ex_graph \<equiv> Lgraph
                   else (if x = cabin then [''Alice''] else [])))
       ex_creds ex_locs"
 
-(*
-fixes ex_graph0 :: "igraph"
-defines ex_graph0_def: "ex_graph0 \<equiv>  Lgraph
-      {(cockpit, door),(door,cabin)}
-      (\<lambda> x. if x = cockpit then [''Charly''] 
-            else (if x = door then [''Bob''] 
-                  else (if x = cabin then [''Alice''] else [])))"
-
-fixes ex_graph' :: "igraph"
-defines ex_graph'_def: "ex_graph' \<equiv>  Lgraph
-      {(cockpit, door),(door,cabin)}
-      (\<lambda> x. if x = cockpit then [''Charly''] 
-            else (if x = door then [] 
-                  else (if x = cabin then [''Bob'', ''Alice''] else [])))"
-*)
-  
+ 
 fixes aid_graph :: "igraph"
 defines aid_graph_def: "aid_graph \<equiv>  Lgraph
       {(cockpit, door),(door,cabin)}
@@ -217,23 +202,20 @@ qed
 
 (* show Safety for Airplane_scenario*)
 lemma Safety: "Safety Airplane_scenario (''Alice'')"
-apply (simp add: Airplane_scenario_def Safety_def enables_def ex_creds_def local_policies_def ex_graph_def cockpit_def)
-  apply (rule impI)
-  apply (rule_tac x = "''Alice''" in exI)
-apply (simp add: atI_def cabin_def ex_locs_def door_def)
-  apply (rule conjI)
-   apply (simp add: has_def credentials_def)
-by (simp add: isin_def credentials_def)
+proof -
+  show "Safety Airplane_scenario ''Alice''"
+    by (simp add: Airplane_scenario_def Safety_def enables_def ex_creds_def 
+                local_policies_def ex_graph_def cockpit_def, rule impI,
+        rule_tac x = "''Alice''" in exI, simp add: atI_def cabin_def ex_locs_def door_def,
+        rule conjI, simp add: has_def credentials_def, simp add: isin_def credentials_def)
+qed
 
 (* show Security for Airplane_scenario *)
 lemma inj_lem: "\<lbrakk> inj f; x \<noteq> y \<rbrakk> \<Longrightarrow> f x \<noteq> f y"
 by (simp add: inj_eq)
 
-(* declare [[show_types = true]] *)
-
 lemma locl_lemma0: "isin G door ''norm'' \<noteq> isin G door ''locked''"
 by (rule_tac f = "isin G door" in inj_lem, simp add: isin_inj, simp)
-
 
 lemma locl_lemma: "isin G door ''norm'' = (\<not> isin G door ''locked'')"
 by (insert locl_lemma0, blast)
@@ -265,24 +247,27 @@ next show "enables (Infrastructure aid_graph local_policies) cockpit (Actor ''Ev
  qed
 qed
 
+(* declare [[show_types = true]] *)
 
 (* The following two props should just be the opposite *) 
-lemma Safety_in_danger: "\<lbrakk> s \<in> airplane_actors \<rbrakk>  
-                         \<Longrightarrow> \<not>(Safety Airplane_in_danger s)"
-apply (simp add: Airplane_in_danger_def Safety_def enables_def)
-apply (unfold local_policies_def)
-apply simp
-apply (rule impI)
-apply (rule allI)
-apply (rule impI)+
-  by (simp add: aid_graph_def ex_locs'_def isin_def)
+lemma Safety_in_danger:
+  fixes s
+  assumes "s \<in> airplane_actors" 
+  shows   "\<not>(Safety Airplane_in_danger s)"
+proof (simp add: Airplane_in_danger_def Safety_def enables_def assms)
+  show "\<forall>x::(actor \<Rightarrow> bool) \<times> action set\<in>local_policies aid_graph cockpit.
+       \<not> (case x of (p::actor \<Rightarrow> bool, e::action set) \<Rightarrow> move \<in> e \<and> p (Actor s))"
+    by ( simp add: local_policies_def aid_graph_def ex_locs'_def isin_def)
+qed
 
 lemma Security_problem': " \<not>(enables Airplane_in_danger cockpit (Actor ''Bob'') move) "
-apply (simp add: Airplane_in_danger_def Security_def enables_def local_policies_def ex_locs_def locl_lemma)
-apply (rule impI)
-apply (rule allI)
-apply (rule impI)+
+proof (simp add: Airplane_in_danger_def Security_def enables_def local_policies_def 
+       ex_locs_def locl_lemma, rule impI)
+  assume "has aid_graph (Actor ''Bob'', ''PIN'')"
+  show "(\<forall>n::char list.
+        Actor n = Actor ''Bob'' \<longrightarrow> n @\<^bsub>aid_graph\<^esub> cabin \<longrightarrow> isin aid_graph door ''locked'')"
 by (simp add: aid_graph_def isin_def ex_locs'_def)
+qed
 
 (* show that with the four eyes rule in Airplane_not_in_danger Eve cannot 
    crash plane, i.e. cannot put position to ground *)
@@ -290,10 +275,11 @@ lemma ex_inv5: "a \<in> airplane_actors \<longrightarrow> global_policy Airplane
 by (simp add: Airplane_not_in_danger_def global_policy_def)
 
 lemma ex_inv6: "global_policy Airplane_not_in_danger a"
-apply (simp add: Airplane_not_in_danger_def global_policy_def)
-apply (rule impI)
-by (simp add: aid_graph_def ex_locs'_def enables_def local_policies_four_eyes_def )
-
+proof (simp add: Airplane_not_in_danger_def global_policy_def, rule impI)
+  assume "a \<notin> airplane_actors"
+  show "\<not> enables (Infrastructure aid_graph local_policies_four_eyes) cockpit (Actor a) put"
+by (simp add: aid_graph_def ex_locs'_def enables_def local_policies_four_eyes_def)
+qed
   
 (* 16. June 2017: start using state change from MC *)
 (* 29. June 2017: start doing proofs *)
@@ -307,107 +293,74 @@ by (simp add: aid_graph_def ex_locs'_def enables_def local_policies_four_eyes_de
    Change is visible in \<rightarrow>\<^sub>n instead of \<rightarrow>\<^sub>i as before *)  
   
 lemma step0:  "Airplane_scenario \<rightarrow>\<^sub>n Airplane_getting_in_danger0"
-  apply (rule_tac l = cockpit and l' = door and a = "''Bob''" in  move)
-  apply (rule refl)
-  apply (simp add: Airplane_scenario_def)
-       apply (simp add: atI_def ex_graph_def)
-      apply (simp add: ex_graph_def Airplane_scenario_def nodes_def, blast)+
-    apply (simp add: actors_graph_def door_def cockpit_def nodes_def cabin_def)
-    apply (rule_tac x = "Location 2" in exI)    
-    apply (simp add: Airplane_scenario_def ex_graph_def cockpit_def, blast)
-   apply (simp add: Airplane_scenario_def enables_def local_policies_def ex_creds_def door_def cockpit_def)
-  apply (unfold Airplane_getting_in_danger0_def)
-  apply (subgoal_tac " (move_graph_a ''Bob'' cockpit door (graphI Airplane_scenario)) = aid_graph0")
-   apply (erule ssubst)
-    apply (simp add: Airplane_scenario_def)
-  apply (simp add: move_graph_a_def door_def cockpit_def Airplane_scenario_def aid_graph0_def ex_graph_def)
-  apply (rule ext)
-   by (simp add: cabin_def door_def)
+proof (rule_tac l = cockpit and l' = door and a = "''Bob''" in  move, rule refl)
+  show "''Bob'' @\<^bsub>graphI Airplane_scenario\<^esub> cockpit"
+  by (simp add: Airplane_scenario_def atI_def ex_graph_def)
+next show "cockpit \<in> nodes (graphI Airplane_scenario)"
+    by (simp add: ex_graph_def Airplane_scenario_def nodes_def, blast)+
+next show "door \<in> nodes (graphI Airplane_scenario)"
+   by (simp add: actors_graph_def door_def cockpit_def nodes_def cabin_def,
+       rule_tac x = "Location 2" in exI,     
+       simp add: Airplane_scenario_def ex_graph_def cockpit_def door_def)
+next show "''Bob'' \<in> actors_graph (graphI Airplane_scenario)"
+    by (simp add: actors_graph_def Airplane_scenario_def nodes_def ex_graph_def, blast)
+next show "enables Airplane_scenario door (Actor ''Bob'') move"
+   by (simp add: Airplane_scenario_def enables_def local_policies_def ex_creds_def door_def cockpit_def)
+next show "Airplane_getting_in_danger0 =
+    Infrastructure (move_graph_a ''Bob'' cockpit door (graphI Airplane_scenario))
+     (delta Airplane_scenario)"
+  proof -
+    have a: "(move_graph_a ''Bob'' cockpit door (graphI Airplane_scenario)) = aid_graph0" 
+      by (simp add: move_graph_a_def door_def cockpit_def Airplane_scenario_def 
+          aid_graph0_def ex_graph_def, rule ext, simp add: cabin_def door_def)
+    show ?thesis
+      by (unfold Airplane_getting_in_danger0_def, insert a, erule ssubst, 
+          simp add: Airplane_scenario_def)
+  qed
+qed
     
 lemma step1:  "Airplane_getting_in_danger0 \<rightarrow>\<^sub>n Airplane_getting_in_danger"
-  apply (rule_tac l = door and l' = cabin and a = "''Bob''" in  move)
-  apply (rule refl)
-  apply (simp add: Airplane_getting_in_danger0_def)
-       apply (simp add: atI_def aid_graph0_def door_def cockpit_def)
-      apply (simp add: aid_graph0_def Airplane_getting_in_danger0_def nodes_def, blast)+
-    apply (simp add: actors_graph_def door_def cockpit_def nodes_def cabin_def)
-    apply (rule_tac x = "Location 1" in exI)    
-    apply (simp add: Airplane_getting_in_danger0_def aid_graph0_def cockpit_def door_def cabin_def, blast)
-   apply (simp add: Airplane_getting_in_danger0_def enables_def local_policies_def ex_creds_def door_def 
-                    cockpit_def cabin_def)
-  apply (unfold Airplane_getting_in_danger_def)
-    apply (simp add: Airplane_getting_in_danger0_def agid_graph_def aid_graph0_def move_graph_a_def door_def cockpit_def cabin_def)
-  apply (rule ext)
-  by (simp add: cabin_def door_def)
-
-(* The same proof as step0 only first apply movel instead of move 
-lemma step0m:  "Airplane_scenario \<rightarrow>\<^bsup>move\<^esup> Airplane_getting_in_danger0"
-  apply (rule_tac l = cockpit and l' = door and a = "''Bob''" in  movel)
-  apply (rule refl)
-  apply (simp add: Airplane_scenario_def)
-       apply (simp add: atI_def ex_graph_def)
-      apply (simp add: ex_graph_def Airplane_scenario_def nodes_def, blast)+
-    apply (simp add: actors_graph_def door_def cockpit_def nodes_def cabin_def)
-    apply (rule_tac x = "Location 2" in exI)    
-    apply (simp add: Airplane_scenario_def ex_graph_def cockpit_def, blast)
-   apply (simp add: Airplane_scenario_def enables_def local_policies_def ex_creds_def door_def cockpit_def)
-  apply (unfold Airplane_getting_in_danger0_def)
-  apply (subgoal_tac " (move_graph_a ''Bob'' cockpit door (graphI Airplane_scenario)) = aid_graph0")
-   apply (erule ssubst)
-    apply (simp add: Airplane_scenario_def)
-  apply (simp add: move_graph_a_def door_def cockpit_def Airplane_scenario_def aid_graph0_def ex_graph_def)
-  apply (rule ext)
-   by (simp add: cabin_def door_def)
-
-(* as before derived directly from step1 by changing first rule from move to movel *)
-lemma step1m:  "Airplane_getting_in_danger0 \<rightarrow>\<^bsup>move\<^esup> Airplane_getting_in_danger"
-  apply (rule_tac l = door and l' = cabin and a = "''Bob''" in  movel)
-  apply (rule refl)
-  apply (simp add: Airplane_getting_in_danger0_def)
-       apply (simp add: atI_def aid_graph0_def door_def cockpit_def)
-      apply (simp add: aid_graph0_def Airplane_getting_in_danger0_def nodes_def, blast)+
-    apply (simp add: actors_graph_def door_def cockpit_def nodes_def cabin_def)
-    apply (rule_tac x = "Location 1" in exI)    
-    apply (simp add: Airplane_getting_in_danger0_def aid_graph0_def cockpit_def door_def cabin_def, blast)
-   apply (simp add: Airplane_getting_in_danger0_def enables_def local_policies_def ex_creds_def door_def 
-                    cockpit_def cabin_def)
-  apply (unfold Airplane_getting_in_danger_def)
-    apply (simp add: Airplane_getting_in_danger0_def agid_graph_def aid_graph0_def move_graph_a_def door_def cockpit_def cabin_def)
-  apply (rule ext)
-  by (simp add: cabin_def door_def)
-*)
+proof (rule_tac l = door and l' = cabin and a = "''Bob''" in  move, rule refl)
+  show "''Bob'' @\<^bsub>graphI Airplane_getting_in_danger0\<^esub> door"
+  by (simp add: Airplane_getting_in_danger0_def atI_def aid_graph0_def door_def cockpit_def)
+next show "door \<in> nodes (graphI Airplane_getting_in_danger0)"
+    by (simp add: aid_graph0_def Airplane_getting_in_danger0_def nodes_def, blast)+
+next show "cabin \<in> nodes (graphI Airplane_getting_in_danger0)"
+    by (simp add: actors_graph_def door_def cockpit_def nodes_def cabin_def,
+    rule_tac x = "Location 1" in exI,    
+    simp add: Airplane_getting_in_danger0_def aid_graph0_def cockpit_def door_def cabin_def)
+next show "''Bob'' \<in> actors_graph (graphI Airplane_getting_in_danger0)"
+   by (simp add: actors_graph_def door_def cockpit_def nodes_def cabin_def 
+                  Airplane_getting_in_danger0_def aid_graph0_def, blast)
+next show "enables Airplane_getting_in_danger0 cabin (Actor ''Bob'') move"
+   by (simp add: Airplane_getting_in_danger0_def enables_def local_policies_def ex_creds_def door_def 
+                cockpit_def cabin_def)
+next show "Airplane_getting_in_danger =
+    Infrastructure (move_graph_a ''Bob'' door cabin (graphI Airplane_getting_in_danger0))
+     (delta Airplane_getting_in_danger0)"
+    by (unfold Airplane_getting_in_danger_def,
+        simp add: Airplane_getting_in_danger0_def agid_graph_def aid_graph0_def 
+                  move_graph_a_def door_def cockpit_def cabin_def, rule ext,
+        simp add: cabin_def door_def)
+qed
 
 lemma step2: "Airplane_getting_in_danger \<rightarrow>\<^sub>n Airplane_in_danger"
-  apply (rule_tac l = door and a = "''Charly''" in  put_remote)
-  apply (rule refl)
-   apply (simp add: enables_def local_policies_def ex_creds_def door_def cockpit_def)
-   apply (unfold Airplane_getting_in_danger_def)
-    apply (simp add: local_policies_def cockpit_def cabin_def door_def)
-   apply (rule_tac x = "''Charly''" in exI)
-    apply (rule conjI)
-    apply (simp add: atI_def agid_graph_def door_def cockpit_def)
-   apply (rule refl) 
-    apply simp
-  apply (unfold Airplane_in_danger_def)
-  apply (simp add: aid_graph_def agid_graph_def ex_locs'_def ex_locs_def)
-  by force
-
-(*
- lemma step2p: "Airplane_getting_in_danger \<rightarrow>\<^bsup>put\<^esup> Airplane_in_danger"
-  apply (rule_tac l = door and a = "''Charly''" in  put_remotel)
-  apply (rule refl)
-   apply (simp add: enables_def local_policies_def ex_creds_def door_def cockpit_def)
-   apply (unfold Airplane_getting_in_danger_def)
-    apply (simp add: local_policies_def cockpit_def cabin_def door_def)
-   apply (rule_tac x = "''Charly''" in exI)
-    apply (rule conjI)
-    apply (simp add: atI_def agid_graph_def door_def cockpit_def)
-   apply (rule refl) 
-    apply simp
-  apply (unfold Airplane_in_danger_def)
-  apply (simp add: agid_graph_def aid_graph_def ex_locs'_def ex_locs_def)
-   by force
-*)
+proof (rule_tac l = door and a = "''Charly''" and z = "''locked''" in  put_remote, rule refl)
+  show "enables Airplane_getting_in_danger door (Actor ''Charly'') put"
+   by (simp add: enables_def local_policies_def ex_creds_def door_def cockpit_def,
+       unfold Airplane_getting_in_danger_def,
+       simp add: local_policies_def cockpit_def cabin_def door_def,
+       rule_tac x = "''Charly''" in exI, rule conjI,
+       simp add: atI_def agid_graph_def door_def cockpit_def, rule refl) 
+next show "Airplane_in_danger =
+    Infrastructure
+     (Lgraph (gra (graphI Airplane_getting_in_danger)) (agra (graphI Airplane_getting_in_danger))
+       (cgra (graphI Airplane_getting_in_danger))
+       ((lgra (graphI Airplane_getting_in_danger))(door := [''locked''])))
+     (delta Airplane_getting_in_danger)"
+    by (unfold Airplane_in_danger_def, simp add: aid_graph_def agid_graph_def 
+               ex_locs'_def ex_locs_def Airplane_getting_in_danger_def, force)
+qed
 
 lemma step0r: "Airplane_scenario \<rightarrow>\<^sub>n* Airplane_getting_in_danger0"
   by (simp add: state_transition_in_refl_def, insert step0, auto)
@@ -422,37 +375,17 @@ theorem step_allr:  "Airplane_scenario \<rightarrow>\<^sub>n* Airplane_in_danger
   by (insert step0r step1r step2r, simp add: state_transition_in_refl_def)
 
 theorem aid_attack: "Air_Kripke \<turnstile> EF ({x. \<not> global_policy x ''Eve''})"
-  apply (simp add: check_def Air_Kripke_def)
-apply (rule conjI)
-apply (simp add: Air_states_def state_transition_in_refl_def)
-(* apply (rule conjI) *)
-apply (rule EF_lem2b)
-apply (subst EF_lem000)
-apply (rule EX_lem0r)
-apply (subst EF_lem000)
-  apply (rule EX_step)
-  apply (unfold state_transition_infra_def)
-apply (rule step0)
-apply (rule EX_lem0r)
-  apply (rule EX_step)
-  apply (unfold state_transition_infra_def)
-apply (rule step1)
-apply (subst EF_lem000)
-apply (rule EX_lem0l)
-  apply (rule EX_step)
-  apply (unfold state_transition_infra_def)
-apply (rule step2)
-apply (rule CollectI)
-by (rule ex_inv4)
-(* 
-apply (unfold L_def)
-apply (unfold Airplane_scenario_def ex_graph_def local_policies_def)
-apply (rule_tac x = "cockpit" in exI)
-apply (rule_tac x = "Actor ''Charly''" in exI)
-apply (rule_tac x = "put" in exI)
-  apply (simp add: enables_def atI_def)
-  by force
-*)    
+proof (simp add: check_def Air_Kripke_def, rule conjI)
+  show "Airplane_scenario \<in> Air_states" 
+    by (simp add: Air_states_def state_transition_in_refl_def)
+next show "Airplane_scenario \<in> EF {x::infrastructure. \<not> global_policy x ''Eve''}"
+  by (rule EF_lem2b, subst EF_lem000, rule EX_lem0r, subst EF_lem000, rule EX_step,
+     unfold state_transition_infra_def, rule step0, rule EX_lem0r,
+     rule_tac y = "Airplane_getting_in_danger" in EX_step,
+     unfold state_transition_infra_def, rule step1, subst EF_lem000, rule EX_lem0l,
+     rule_tac y = "Airplane_in_danger" in EX_step, unfold state_transition_infra_def,
+     rule step2, rule CollectI, rule ex_inv4)
+qed 
 
     
 (* Invariant: actors cannot be at two places at the same time*)    
@@ -1023,7 +956,7 @@ This is the whole point of the Insider framework, that the impersonation
 at the Actor level enables the Insider to act instead of the alter ego.
 Nevertheless, we can prove the 2 person invariant; we can also simply prove
 that Eve is never in the cockpit: AG({x. ~(''Eve'' @\<^bsub>graphI x\<^esub> cockpit)})
-(simply becaucse ''Eve'' is never in the Airplane for states derived from
+(simply because ''Eve'' is never in the Airplane for states derived from
 Airplane_not_in_danger_init),
 What is revealed by this exercise is that clearly we cannot disprove what
 we have proved before: an Insider attack is possible if the Insider is
@@ -1122,8 +1055,8 @@ apply (simp add: Airplane_not_in_danger_init_def ex_graph_def)
     by simp
      
 (* set version should also work*)
-(* The version of two_person_inv above we need uses cardinality of lists of 
-   actors rather than lenght of lists. Therefore firs some euqivalences
+(* The version of two_person_inv above we need, uses cardinality of lists of 
+   actors rather than length of lists. Therefore first some equivalences
    and then a restatement of two_person_inv *)   
 (* proof idea: show since there are no duplicates in the list
     agra (graphI z) cockpit therefore then 
@@ -1362,31 +1295,6 @@ apply (drule Eve_not_in_cockpit)
        apply assumption
 by blast
 
-(*    
-    apply (drule Eve_not_in_cockpit)
-     apply assumption
-    apply (rotate_tac -1)
-    apply (erule notE)
-    apply (rule refl)
-    apply (erule conjE) *)
-
-
-  (* L is in our HOL-CTL just necessary to show that the model is not empty
-     by showing that there is at least some instance in the base state that 
-     fulfills the enables predicate 
-  apply (rule notI)
-  apply (erule conjE)
-    apply (drule Eve_not_in_cockpit)
-  apply (unfold L_def)
-  apply (rule_tac x = cockpit in exI)
-  apply (rule_tac x = "Actor ''Charly''" in exI)
-  apply (rule_tac x = put in exI)
-  apply (simp add: Airplane_not_in_danger_init_def ex_graph_def 
-                local_policies_four_eyes_def enables_def atI_def
-                airplane_actors_def)
-  apply (rule_tac x = "''Charly''" in exI)
-  by simp
-*)
 
 end
   
@@ -1397,12 +1305,25 @@ Zwei etwas gewagte Ansatzpunkte, die ich aber gerne mal untersuchen wuerde:
 - Kann man zeigen, dass die Tuer so sein muss wie sie ist, i.e. wenn man 
   eine Terrorsicherung haben will, dann muss sie von innen definitiv veriegelbar 
   sein.
-- Mann man zeigen, dass wenn ein zweiter im Cockpit ist und er staerker ist als 
+- Kann man zeigen, dass wenn ein zweiter im Cockpit ist und er staerker ist als 
   der Pilot, dass dann auch ein Insider keine Gefahr darstellt? 
   (Kommentar: das ist falsch formuliert "staerker als der Pilot": jeder der 
    beiden muss in der Lage sein den anderen von gefaehrlichen Aktionen abzuhalten
    (mindestens das Flugzeug zum Absturz zu bringen))
+(Translation: 
+"Two rather daring starting points, that I'd like to investigate eventually:
+- it it possibly to show that the door has to be as it is, that is, if we want a
+  terror protection, it must be lockable from inside.
+- can we show that if a second person is in the cockpit and he is stronger than the
+  pilot, that in this case even an insider represents no danger? )
+  (comment: that is phrased wrongly "stonger than the pilot": each of the
+   two must be in a position to prevent the other from dangerous actions (at
+   least from bringing down the airplane)"
 
+<20.10.19< The former point is contained in the property Security
+<20.10.19< The last point has become obsolete by the previous development, i.e., we
+   need to make precisely the assumption that the second person can overcome the insider.
+ 
 Wenn man diese zwei Punkte logisch ausdruecken kann und am Modell beweisen
 kann, waere das ein Schritt vorwaerts.
 *)
