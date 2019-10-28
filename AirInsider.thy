@@ -11,27 +11,7 @@ definition ID :: "[actor, string] \<Rightarrow> bool"
 where "ID a s \<equiv> (a = Actor s)"
 
 datatype location = Location nat
-(* So, we need to fill tspace and lspace with a semantics based on the state i.e.
-   the graph/infrastructure. An idea would be to have tables for 
-   role(Actor x, r) and has(Actor y, c) as well as for locations
-   for isin l s .  The tables would then be the basis for proper semantic definitions
-   of the operators tspace and lspace. For example tspace (Actor a) a would not return
-   just bool but all roles and credentials that the actor has. A policy would still
-   state has (x,''PIN'') for example but the ex_creds map would assign a pair of lists
-   instead of bool. 
-   Semantics of has could be achieved by extending the type with infrastructure
-   has :: [infrastructure, (actor *string)] \<Rightarrow> bool but with semantics
-   "has I (a, c) == (a,c) \in credentials(tspace I a)
-   where credential is an acronym for lambda lxl. set(first lxl)
-   similar for role with projection roles lxl = set(snd lxl) 
-   [infrastructure, (actor *string)] \<Rightarrow> bool where
-   role I (a, r) == (a, r) \in roles(tspace I a)
-   For lspace we need to define isin
-   isin :: [infrastructure, location, string] \<Rightarrow> bool where
-   isin I l s == (l,s) \in set(lspace I l) 
-   we don't need projections here since lspace is just one table
-   (i.e. list of pairs (location * string)).
-*)  
+
 datatype igraph = Lgraph "(location * location)set" "location \<Rightarrow> identity list"
                          "actor \<Rightarrow> (string list * string list)"  "location \<Rightarrow> string list"
 datatype infrastructure = 
@@ -76,8 +56,7 @@ definition role :: "[igraph, actor * string] \<Rightarrow> bool"
 definition isin :: "[igraph,location, string] \<Rightarrow> bool" 
   where "isin G l s \<equiv> s \<in> set(lgra G l)"
   
-  
-  
+
 datatype psy_states = happy | depressed | disgruntled | angry | stressed
 datatype motivations = financial | political | revenge | curious | competitive_advantage | power | peer_recognition
 
@@ -107,16 +86,24 @@ consts social_graph :: "(identity * identity) set"
 (* This social graph is a parameter to the theory. It depends on
    actual measured activities. We will use it to derive meta-theorems. *)
 
+(* UasI and UasI' are the central predicates allowing to specify Insiders.
+They define which identities can be mapped to the same role by the Actor function.
+For all other identities, Actor is defined as injective on those identities.
+*)
 definition UasI ::  "[identity, identity] \<Rightarrow> bool " 
 where "UasI a b \<equiv> (Actor a = Actor b) \<and> (\<forall> x y. x \<noteq> a \<and> y \<noteq> a \<and> Actor x = Actor y \<longrightarrow> x = y)"
 
 definition UasI' ::  "[actor => bool, identity, identity] \<Rightarrow> bool " 
 where "UasI' P a b \<equiv> P (Actor b) \<longrightarrow> P (Actor a)"
 
-(* derive theorems about UasI being a equivalence relation *)
-
+(* astate assigns the state (motivations and mood) to an identity, see above
+for actor_state *)
 consts astate :: "identity \<Rightarrow> actor_state"
 
+(* Two versions of Insider predicate correspondong to UasI and UasI'.
+Under the assumption that the tipping point has been reached for a person a
+then a can impersonate all b (take all of b's "roles") where
+the b's are specified by a given set of identities *)
 definition Insider :: "[identity, identity set] \<Rightarrow> bool" 
 where "Insider a C \<equiv> (tipping_point (astate a) \<longrightarrow> (\<forall> b\<in>C. UasI a b))"
 
@@ -128,7 +115,8 @@ where "Insider' P a C \<equiv> (tipping_point (astate a) \<longrightarrow> (\<fo
 definition atI :: "[identity, igraph, location] \<Rightarrow> bool" ("_ @\<^bsub>(_)\<^esub> _" 50)
 where "a @\<^bsub>G\<^esub> l \<equiv> a \<in> set(agra G l)"
 
-(* enables needs  (\<exists> n. ID a n \<and> (n @\<^bsub>graphI I\<^esub> l)\<or> connected I n l) *) 
+(* enables is the central definition of the behaviour as given by a policy
+that specifies what actions are allowed in a certain location for what actors *) 
 definition enables :: "[infrastructure, location, actor, action] \<Rightarrow> bool"
 where
 "enables I l a a' \<equiv>  (\<exists> (p,e) \<in> delta I (graphI I) l. a' \<in> e \<and> p a)"
@@ -146,6 +134,8 @@ where "misbehaviour I \<equiv> {(t,a,a'). \<exists> b. UasI a b \<and> enables I
 definition misbehaviour :: "infrastructure \<Rightarrow> (location * actor * action)set"
 where "misbehaviour I \<equiv> -(behaviour I)"
 
+(* some constructions to deal with lists of actors in locations for 
+the semantics of action move *)
 primrec del :: "['a, 'a list] \<Rightarrow> 'a list"
 where 
 del_nil: "del a [] = []" |
@@ -167,6 +157,8 @@ where "move_graph_a n l l' g \<equiv> Lgraph (gra g)
                      ((agra g)(l := del n (agra g l)))(l' := (n # (agra g l')))
                      else (agra g))(cgra g)(lgra g)"
 
+(* State transition relation over infrastructures (the states) defining the 
+   semantics of actions in systems with humans and potentially insiders *)
 inductive state_transition_in :: "[infrastructure, infrastructure] \<Rightarrow> bool" ("(_ \<rightarrow>\<^sub>n _)" 50)
 where
   move: "\<lbrakk> G = graphI I; a @\<^bsub>G\<^esub> l; l \<in> nodes G; l' \<in> nodes G;
@@ -208,81 +200,51 @@ instance
 definition state_transition_in_refl ("(_ \<rightarrow>\<^sub>n* _)" 50)
 where "s \<rightarrow>\<^sub>n* s' \<equiv> ((s,s') \<in> {(x,y). state_transition_in x y}\<^sup>*)"
 
-(* show that if I \<rightarrow> I' then policy is preserved?! Should be doable since 
-   in all rules always enables holds and policy does not change. Requires
-   a notion of I \<Turnstile> ... *)
-
 lemma del_del[rule_format]: "n \<in> set (del a S) \<longrightarrow> n \<in> set S"
-  apply (induct_tac S)
-  by auto
+  by (induct_tac S, auto)
 
 (* Not true in the current formulation of del since copies are not 
-   deleted. But changing that causes extra complxity also elsewhere 
+   deleted. But changing that causes extra complexity also elsewhere 
    (see jonce) 
 lemma del_del_elim[rule_format]: "n \<in> set (S) \<longrightarrow> n \<notin> set (del n S)" *)
     
     
 lemma del_dec[rule_format]: "a \<in> set S \<longrightarrow> length (del a S) < length S"  
-  apply (induct_tac S)
-    by auto
+  by (induct_tac S, auto)
 
 lemma del_sort[rule_format]: "\<forall> n. (Suc n ::nat) \<le> length (l) \<longrightarrow> n \<le> length (del a (l))"   
-  apply (induct_tac l)
-   apply simp
-  apply clarify
-  apply (case_tac n)
-   apply simp
-    by simp
+  by (induct_tac l, simp, clarify, case_tac n, simp, simp)
     
 lemma del_jonce: "jonce a l \<longrightarrow> a \<notin> set (del a l)"
-  apply (induct_tac l)
-  by auto
+  by (induct_tac l, auto)
     
 lemma del_nodup[rule_format]: "nodup a l \<longrightarrow> a \<notin> set(del a l)"
-  apply (induct_tac l)
-  by auto
+  by (induct_tac l, auto)
     
 lemma nodup_up[rule_format]: "a \<in> set (del a l) \<longrightarrow> a \<in> set l"
-  apply (induct_tac l)
-  by auto
+  by (induct_tac l, auto)
     
-    lemma del_up [rule_format]: "a \<in> set (del aa l) \<longrightarrow> a \<in> set l"
-   apply (induct_tac l)
-  by auto
+lemma del_up [rule_format]: "a \<in> set (del aa l) \<longrightarrow> a \<in> set l"
+  by (induct_tac l, auto)
 
 lemma nodup_notin[rule_format]:   "a \<notin> set list \<longrightarrow> nodup a list"
-  apply (induct_tac list)
-  by auto
+  by (induct_tac list, auto)
     
-    lemma nodup_down[rule_format]: "nodup a l \<longrightarrow> nodup a (del a l)"
-      apply (induct_tac l)
-       apply simp+
-      apply (clarify)
-    by (erule nodup_notin)
+lemma nodup_down[rule_format]: "nodup a l \<longrightarrow> nodup a (del a l)"
+  by (induct_tac l, simp+, clarify, erule nodup_notin)
 
 lemma del_notin_down[rule_format]: "a \<notin> set list \<longrightarrow> a \<notin> set (del aa list) "
-  apply (induct_tac list)
-  by auto
+  by (induct_tac list, auto)
 
 lemma del_not_a[rule_format]: " x \<noteq> a \<longrightarrow> x \<in> set l \<longrightarrow> x \<in> set (del a l)"
-  apply (induct_tac l)
-    by auto
+  by (induct_tac l, auto)
       
 lemma nodup_down_notin[rule_format]: "nodup a l \<longrightarrow> nodup a (del aa l)"
-  apply (induct_tac l)
-   apply simp+
-    apply (rule conjI)
-  apply (clarify)
-   apply (erule nodup_notin)
-  apply (rule impI)+
- by (erule del_notin_down)
-
+  by (induct_tac l, simp+, rule conjI, clarify, erule nodup_notin, (rule impI)+,
+      erule del_notin_down)
     
 lemma move_graph_eq: "move_graph_a a l l g = g"  
-  apply (simp add: move_graph_a_def)
-  apply (case_tac g)
-  by force
+  by (simp add: move_graph_a_def, case_tac g, force)
    
-
 end
 end

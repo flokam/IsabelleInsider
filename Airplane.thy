@@ -183,7 +183,6 @@ by (simp add: Airplane_scenario_def global_policy_def airplane_actors_def)
 lemma ex_inv2: "global_policy Airplane_scenario ''Charly''"
 by (simp add: Airplane_scenario_def global_policy_def airplane_actors_def)
 
-
 lemma ex_inv3: "\<not>global_policy Airplane_scenario ''Eve''"
 proof (simp add: Airplane_scenario_def global_policy_def, rule conjI)
   show "''Eve'' \<notin> airplane_actors" by (simp add: airplane_actors_def)
@@ -388,8 +387,309 @@ next show "Airplane_scenario \<in> EF {x::infrastructure. \<not> global_policy x
 qed 
 
     
-(* Invariant: actors cannot be at two places at the same time*)    
-lemma actors_unique_loc_base: "\<lbrakk> I \<rightarrow>\<^sub>n I' ; 
+(* Invariant: actors cannot be at two places at the same time*)  
+lemma  actors_unique_loc_base: 
+  assumes "I \<rightarrow>\<^sub>n I'"
+      and "(\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
+           (\<forall> l. nodup a (agra (graphI I) l))"
+    shows "(\<forall> l l'. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l'  \<longrightarrow> l = l') \<and>
+           (\<forall> l. nodup a (agra (graphI I') l))"
+proof (rule state_transition_in.cases, rule assms(1))
+  show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) (a'::char list) (z::char list)
+       I'a::infrastructure.
+       I = Ia \<Longrightarrow>
+       I' = I'a \<Longrightarrow>
+       G = graphI Ia \<Longrightarrow>
+       aa @\<^bsub>G\<^esub> l \<Longrightarrow>
+       a' @\<^bsub>G\<^esub> l \<Longrightarrow>
+       has G (Actor aa, z) \<Longrightarrow>
+       enables Ia l (Actor aa) get \<Longrightarrow>
+       I'a =
+       Infrastructure
+        (Lgraph (gra G) (agra G)
+          ((cgra G)(Actor a' := (z # fst (cgra G (Actor a')), snd (cgra G (Actor a'))))) (lgra G))
+        (delta Ia) \<Longrightarrow>
+       (\<forall>(l::location) l'::location. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l' \<longrightarrow> l = l') \<and>
+       (\<forall>l::location. nodup a (agra (graphI I') l))" using assms
+    by (simp add: atI_def)
+next fix G Ia aa l I'a z
+  assume a0: "I = Ia" and a1: "I' = I'a" and a2: "G = graphI Ia" and a3: "aa @\<^bsub>G\<^esub> l"
+     and a4: "enables Ia l (Actor aa) put" 
+     and a5: "I'a = Infrastructure (Lgraph (gra G) (agra G) (cgra G) ((lgra G)(l := [z]))) (delta Ia)"
+  show "(\<forall>(l::location) l'::location. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l' \<longrightarrow> l = l') \<and>
+       (\<forall>l::location. nodup a (agra (graphI I') l))"using assms
+    by (simp add: a0 a1 a2 a3 a4 a5 atI_def)
+next show "\<And>(G::igraph) (Ia::infrastructure) (l::location) (aa::char list) (I'a::infrastructure)
+       z::char list.
+       I = Ia \<Longrightarrow>
+       I' = I'a \<Longrightarrow>
+       G = graphI Ia \<Longrightarrow>
+       enables Ia l (Actor aa) put \<Longrightarrow>
+       I'a = Infrastructure (Lgraph (gra G) (agra G) (cgra G) ((lgra G)(l := [z]))) (delta Ia) \<Longrightarrow>
+       (\<forall>(l::location) l'::location. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l' \<longrightarrow> l = l') \<and>
+       (\<forall>l::location. nodup a (agra (graphI I') l))"
+    by (clarify, simp add: assms atI_def)
+next show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) (l'::location)
+       I'a::infrastructure.
+       I = Ia \<Longrightarrow>
+       I' = I'a \<Longrightarrow>
+       G = graphI Ia \<Longrightarrow>
+       aa @\<^bsub>G\<^esub> l \<Longrightarrow>
+       l \<in> nodes G \<Longrightarrow>
+       l' \<in> nodes G \<Longrightarrow>
+       aa \<in> actors_graph (graphI Ia) \<Longrightarrow>
+       enables Ia l' (Actor aa) move \<Longrightarrow>
+       I'a = Infrastructure (move_graph_a aa l l' (graphI Ia)) (delta Ia) \<Longrightarrow>
+       (\<forall>(l::location) l'::location. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l' \<longrightarrow> l = l') \<and>
+       (\<forall>l::location. nodup a (agra (graphI I') l))"
+  proof (simp add: move_graph_a_def,rule conjI, clarify, rule conjI, clarify, rule conjI, clarify)
+    show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) (l'::location)
+       (I'a::infrastructure) (la::location) l'a::location.
+       I' =
+       Infrastructure
+        (Lgraph (gra (graphI I))
+          (if a \<in> set (agra (graphI I) l) \<and> a \<notin> set (agra (graphI I) l')
+           then (agra (graphI I))(l := del a (agra (graphI I) l), l' := a # agra (graphI I) l')
+           else agra (graphI I))
+          (cgra (graphI I)) (lgra (graphI I)))
+        (delta I) \<Longrightarrow>
+       a @\<^bsub>graphI I\<^esub> l \<Longrightarrow>
+       l \<in> nodes (graphI I) \<Longrightarrow>
+       l' \<in> nodes (graphI I) \<Longrightarrow>
+       a \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor a) move \<Longrightarrow>
+       a \<in> set (agra (graphI I) l) \<Longrightarrow>
+       a \<notin> set (agra (graphI I) l') \<Longrightarrow>
+       a @\<^bsub>Lgraph (gra (graphI I))
+            ((agra (graphI I))(l := del a (agra (graphI I) l), l' := a # agra (graphI I) l'))
+            (cgra (graphI I)) (lgra (graphI I))\<^esub> la \<Longrightarrow>
+       a @\<^bsub>Lgraph (gra (graphI I))
+            ((agra (graphI I))(l := del a (agra (graphI I) l), l' := a # agra (graphI I) l'))
+            (cgra (graphI I)) (lgra (graphI I))\<^esub> l'a \<Longrightarrow>
+       la = l'a"
+      apply (case_tac "la \<noteq> l' \<and> la \<noteq> l \<and> l'a \<noteq> l' \<and> l'a \<noteq> l")
+       apply (simp add: atI_def)
+       apply (subgoal_tac "la = l' \<or> la = l \<or> l'a = l' \<or> l'a = l")
+      prefer 2
+      using assms(2) atI_def apply blast
+      apply blast
+      by (metis agra.simps assms(2) atI_def del_nodup fun_upd_apply)
+  next show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) (l'::location)
+       I'a::infrastructure.
+       I' =
+       Infrastructure
+        (Lgraph (gra (graphI I))
+          (if a \<in> set (agra (graphI I) l) \<and> a \<notin> set (agra (graphI I) l')
+           then (agra (graphI I))(l := del a (agra (graphI I) l), l' := a # agra (graphI I) l')
+           else agra (graphI I))
+          (cgra (graphI I)) (lgra (graphI I)))
+        (delta I) \<Longrightarrow>
+       a @\<^bsub>graphI I\<^esub> l \<Longrightarrow>
+       l \<in> nodes (graphI I) \<Longrightarrow>
+       l' \<in> nodes (graphI I) \<Longrightarrow>
+       a \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor a) move \<Longrightarrow>
+       a \<in> set (agra (graphI I) l) \<Longrightarrow>
+       a \<notin> set (agra (graphI I) l') \<Longrightarrow>
+       \<forall>la::location.
+          (la = l \<longrightarrow> l \<noteq> l' \<longrightarrow> nodup a (del a (agra (graphI I) l))) \<and>
+          (la \<noteq> l \<longrightarrow> la \<noteq> l' \<longrightarrow> nodup a (agra (graphI I) la))"
+      by (simp add: assms(2) nodup_down)
+  next show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) (l'::location)
+       I'a::infrastructure.
+       I' =
+       Infrastructure
+        (Lgraph (gra (graphI I))
+          (if a \<in> set (agra (graphI I) l) \<and> a \<notin> set (agra (graphI I) l')
+           then (agra (graphI I))(l := del a (agra (graphI I) l), l' := a # agra (graphI I) l')
+           else agra (graphI I))
+          (cgra (graphI I)) (lgra (graphI I)))
+        (delta I) \<Longrightarrow>
+       a @\<^bsub>graphI I\<^esub> l \<Longrightarrow>
+       l \<in> nodes (graphI I) \<Longrightarrow>
+       l' \<in> nodes (graphI I) \<Longrightarrow>
+       a \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor a) move \<Longrightarrow>
+       (a \<in> set (agra (graphI I) l) \<longrightarrow> a \<in> set (agra (graphI I) l')) \<longrightarrow>
+       (\<forall>(l::location) l'::location.
+           a @\<^bsub>Lgraph (gra (graphI I)) (agra (graphI I)) (cgra (graphI I)) (lgra (graphI I))\<^esub> l \<and>
+           a @\<^bsub>Lgraph (gra (graphI I)) (agra (graphI I)) (cgra (graphI I)) (lgra (graphI I))\<^esub> l' \<longrightarrow>
+           l = l') \<and>
+       (\<forall>l::location. nodup a (agra (graphI I) l))"
+      by (simp add: assms(2) atI_def)
+  next show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) (l'::location)
+       I'a::infrastructure.
+       I = Ia \<Longrightarrow>
+       I' =
+       Infrastructure
+        (Lgraph (gra (graphI Ia))
+          (if aa \<in> set (agra (graphI Ia) l) \<and> aa \<notin> set (agra (graphI Ia) l')
+           then (agra (graphI Ia))(l := del aa (agra (graphI Ia) l), l' := aa # agra (graphI Ia) l')
+           else agra (graphI Ia))
+          (cgra (graphI Ia)) (lgra (graphI Ia)))
+        (delta Ia) \<Longrightarrow>
+       G = graphI Ia \<Longrightarrow>
+       aa @\<^bsub>graphI Ia\<^esub> l \<Longrightarrow>
+       l \<in> nodes (graphI Ia) \<Longrightarrow>
+       l' \<in> nodes (graphI Ia) \<Longrightarrow>
+       aa \<in> actors_graph (graphI Ia) \<Longrightarrow>
+       enables Ia l' (Actor aa) move \<Longrightarrow>
+       I'a =
+       Infrastructure
+        (Lgraph (gra (graphI Ia))
+          (if aa \<in> set (agra (graphI Ia) l) \<and> aa \<notin> set (agra (graphI Ia) l')
+           then (agra (graphI Ia))(l := del aa (agra (graphI Ia) l), l' := aa # agra (graphI Ia) l')
+           else agra (graphI Ia))
+          (cgra (graphI Ia)) (lgra (graphI Ia)))
+        (delta Ia) \<Longrightarrow>
+       aa \<noteq> a \<longrightarrow>
+       (aa \<in> set (agra (graphI Ia) l) \<and> aa \<notin> set (agra (graphI Ia) l') \<longrightarrow>
+        (\<forall>(la::location) l'a::location.
+            a @\<^bsub>Lgraph (gra (graphI Ia))
+                 ((agra (graphI Ia))
+                  (l := del aa (agra (graphI Ia) l), l' := aa # agra (graphI Ia) l'))
+                 (cgra (graphI Ia)) (lgra (graphI Ia))\<^esub> la \<and>
+            a @\<^bsub>Lgraph (gra (graphI Ia))
+                 ((agra (graphI Ia))
+                  (l := del aa (agra (graphI Ia) l), l' := aa # agra (graphI Ia) l'))
+                 (cgra (graphI Ia)) (lgra (graphI Ia))\<^esub> l'a \<longrightarrow>
+            la = l'a) \<and>
+        (\<forall>la::location.
+            (la = l \<longrightarrow>
+             (l = l' \<longrightarrow> nodup a (agra (graphI Ia) l')) \<and>
+             (l \<noteq> l' \<longrightarrow> nodup a (del aa (agra (graphI Ia) l)))) \<and>
+            (la \<noteq> l \<longrightarrow>
+             (la = l' \<longrightarrow> nodup a (agra (graphI Ia) l')) \<and>
+             (la \<noteq> l' \<longrightarrow> nodup a (agra (graphI Ia) la))))) \<and>
+       ((aa \<in> set (agra (graphI Ia) l) \<longrightarrow> aa \<in> set (agra (graphI Ia) l')) \<longrightarrow>
+        (\<forall>(l::location) l'::location.
+            a @\<^bsub>Lgraph (gra (graphI Ia)) (agra (graphI Ia)) (cgra (graphI Ia))
+                 (lgra (graphI Ia))\<^esub> l \<and>
+            a @\<^bsub>Lgraph (gra (graphI Ia)) (agra (graphI Ia)) (cgra (graphI Ia))
+                 (lgra (graphI Ia))\<^esub> l' \<longrightarrow>
+            l = l') \<and>
+        (\<forall>l::location. nodup a (agra (graphI Ia) l)))"
+    proof (clarify, simp add: atI_def,rule conjI,clarify,rule conjI,clarify,rule conjI,
+           clarify,rule conjI,clarify,simp,clarify,rule conjI,(rule impI)+)
+      show "\<And>(aa::char list) (l::location) (l'::location) l'a::location.
+       I' =
+       Infrastructure
+        (Lgraph (gra (graphI I))
+          ((agra (graphI I))(l := del aa (agra (graphI I) l), l' := aa # agra (graphI I) l'))
+          (cgra (graphI I)) (lgra (graphI I)))
+        (delta I) \<Longrightarrow>
+       aa \<in> set (agra (graphI I) l) \<Longrightarrow>
+       l \<in> nodes (graphI I) \<Longrightarrow>
+       l' \<in> nodes (graphI I) \<Longrightarrow>
+       aa \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor aa) move \<Longrightarrow>
+       aa \<noteq> a \<Longrightarrow>
+       aa \<notin> set (agra (graphI I) l') \<Longrightarrow>
+       l \<noteq> l' \<Longrightarrow>
+       l'a \<noteq> l \<Longrightarrow>
+       l'a = l' \<Longrightarrow> a \<in> set (del aa (agra (graphI I) l)) \<Longrightarrow> a \<notin> set (agra (graphI I) l')"
+        by (meson assms(2) atI_def del_notin_down)
+    next show "\<And>(aa::char list) (l::location) (l'::location) l'a::location.
+       I' =
+       Infrastructure
+        (Lgraph (gra (graphI I))
+          ((agra (graphI I))(l := del aa (agra (graphI I) l), l' := aa # agra (graphI I) l'))
+          (cgra (graphI I)) (lgra (graphI I)))
+        (delta I) \<Longrightarrow>
+       aa \<in> set (agra (graphI I) l) \<Longrightarrow>
+       l \<in> nodes (graphI I) \<Longrightarrow>
+       l' \<in> nodes (graphI I) \<Longrightarrow>
+       aa \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor aa) move \<Longrightarrow>
+       aa \<noteq> a \<Longrightarrow>
+       aa \<notin> set (agra (graphI I) l') \<Longrightarrow>
+       l \<noteq> l' \<Longrightarrow>
+       l'a \<noteq> l \<Longrightarrow>
+       l'a \<noteq> l' \<longrightarrow> a \<in> set (del aa (agra (graphI I) l)) \<longrightarrow> a \<notin> set (agra (graphI I) l'a)"
+        by (meson assms(2) atI_def del_notin_down)
+    next show "\<And>(aa::char list) (l::location) (l'::location) la::location.
+       I' =
+       Infrastructure
+        (Lgraph (gra (graphI I))
+          (if aa \<notin> set (agra (graphI I) l')
+           then (agra (graphI I))(l := del aa (agra (graphI I) l), l' := aa # agra (graphI I) l')
+           else agra (graphI I))
+          (cgra (graphI I)) (lgra (graphI I)))
+        (delta I) \<Longrightarrow>
+       aa \<in> set (agra (graphI I) l) \<Longrightarrow>
+       l \<in> nodes (graphI I) \<Longrightarrow>
+       l' \<in> nodes (graphI I) \<Longrightarrow>
+       aa \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor aa) move \<Longrightarrow>
+       aa \<noteq> a \<Longrightarrow>
+       aa \<notin> set (agra (graphI I) l') \<Longrightarrow>
+       la \<noteq> l \<longrightarrow>
+       (la = l' \<longrightarrow>
+        (\<forall>l'a::location.
+            (l'a = l \<longrightarrow>
+             l \<noteq> l' \<longrightarrow> a \<in> set (agra (graphI I) l') \<longrightarrow> a \<notin> set (del aa (agra (graphI I) l))) \<and>
+            (l'a \<noteq> l \<longrightarrow>
+             l'a \<noteq> l' \<longrightarrow> a \<in> set (agra (graphI I) l') \<longrightarrow> a \<notin> set (agra (graphI I) l'a)))) \<and>
+       (la \<noteq> l' \<longrightarrow>
+        (\<forall>l'a::location.
+            (l'a = l \<longrightarrow>
+             (l = l' \<longrightarrow> a \<in> set (agra (graphI I) la) \<longrightarrow> a \<notin> set (agra (graphI I) l')) \<and>
+             (l \<noteq> l' \<longrightarrow> a \<in> set (agra (graphI I) la) \<longrightarrow> a \<notin> set (del aa (agra (graphI I) l)))) \<and>
+            (l'a \<noteq> l \<longrightarrow>
+             (l'a = l' \<longrightarrow> a \<in> set (agra (graphI I) la) \<longrightarrow> a \<notin> set (agra (graphI I) l')) \<and>
+             (l'a \<noteq> l' \<longrightarrow>
+              a \<in> set (agra (graphI I) la) \<and> a \<in> set (agra (graphI I) l'a) \<longrightarrow> la = l'a))))"
+        by (meson assms(2) atI_def del_notin_down)
+    next show "\<And>(aa::char list) (l::location) l'::location.
+       I' =
+       Infrastructure
+        (Lgraph (gra (graphI I))
+          (if aa \<notin> set (agra (graphI I) l')
+           then (agra (graphI I))(l := del aa (agra (graphI I) l), l' := aa # agra (graphI I) l')
+           else agra (graphI I))
+          (cgra (graphI I)) (lgra (graphI I)))
+        (delta I) \<Longrightarrow>
+       aa \<in> set (agra (graphI I) l) \<Longrightarrow>
+       l \<in> nodes (graphI I) \<Longrightarrow>
+       l' \<in> nodes (graphI I) \<Longrightarrow>
+       aa \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor aa) move \<Longrightarrow>
+       aa \<noteq> a \<Longrightarrow>
+       aa \<notin> set (agra (graphI I) l') \<Longrightarrow>
+       \<forall>la::location.
+          (la = l \<longrightarrow>
+           (l = l' \<longrightarrow> nodup a (agra (graphI I) l')) \<and>
+           (l \<noteq> l' \<longrightarrow> nodup a (del aa (agra (graphI I) l)))) \<and>
+          (la \<noteq> l \<longrightarrow>
+           (la = l' \<longrightarrow> nodup a (agra (graphI I) l')) \<and> (la \<noteq> l' \<longrightarrow> nodup a (agra (graphI I) la)))"
+        by (simp add: assms(2) nodup_down_notin)
+    next show "\<And>(aa::char list) (l::location) l'::location.
+       I' =
+       Infrastructure
+        (Lgraph (gra (graphI I))
+          (if aa \<notin> set (agra (graphI I) l')
+           then (agra (graphI I))(l := del aa (agra (graphI I) l), l' := aa # agra (graphI I) l')
+           else agra (graphI I))
+          (cgra (graphI I)) (lgra (graphI I)))
+        (delta I) \<Longrightarrow>
+       aa \<in> set (agra (graphI I) l) \<Longrightarrow>
+       l \<in> nodes (graphI I) \<Longrightarrow>
+       l' \<in> nodes (graphI I) \<Longrightarrow>
+       aa \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor aa) move \<Longrightarrow>
+       aa \<noteq> a \<Longrightarrow>
+       aa \<in> set (agra (graphI I) l') \<longrightarrow>
+       (\<forall>(l::location) l'::location.
+           a \<in> set (agra (graphI I) l) \<and> a \<in> set (agra (graphI I) l') \<longrightarrow> l = l') \<and>
+       (\<forall>l::location. nodup a (agra (graphI I) l))"
+        using assms(2) atI_def by blast
+    qed
+  qed
+qed   
+
+
+(*
+lemma actors_unique_loc_base0: "\<lbrakk> I \<rightarrow>\<^sub>n I' ; 
        (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
        (\<forall> l. nodup a (agra (graphI I) l)) \<rbrakk> \<Longrightarrow> 
         (\<forall> l l'. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l'  \<longrightarrow> l = l') \<and>
@@ -538,7 +838,8 @@ lemma actors_unique_loc_base: "\<lbrakk> I \<rightarrow>\<^sub>n I' ;
     (* *)
   apply clarify
 by (simp add: atI_def)
-      
+*)
+
   lemma actors_unique_loc_step: "\<lbrakk> (I, I') \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* ; 
        \<forall> a. (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
        (\<forall> l. nodup a (agra (graphI I) l)) \<rbrakk> \<Longrightarrow> 
@@ -619,8 +920,7 @@ lemma actors_unique_loc_aid_step:
 "(Airplane_not_in_danger_init, I)\<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
  \<Longrightarrow>     \<forall> a. (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
          (\<forall> l. nodup a (agra (graphI I) l))"  
-  apply (erule actors_unique_loc_step)
-by (rule actors_unique_loc_aid_base)
+  by (erule actors_unique_loc_step, rule actors_unique_loc_aid_base)
     
 (* Using the state transition, Kripke structure and CTL, we can now
    also express (and prove!) unreachability properties which enable to 
@@ -628,25 +928,19 @@ by (rule actors_unique_loc_aid_base)
    rule. *)
 lemma not_enableI: "(\<forall> (p,e) \<in> delta I (graphI I) l. (~(h : e) | (~(p(a))))) 
                      \<Longrightarrow> ~(enables I l a h)"
-  apply (simp add: enables_def)
-    by blast
+  by (simp add: enables_def, blast)
 
 lemma not_enableI2: "\<lbrakk>\<And> p e. (p,e) \<in> delta I (graphI I) l \<Longrightarrow>
                  (~(t : e) |  (~(p(a)))) \<rbrakk> \<Longrightarrow> ~(enables I l a t)"
- apply (rule not_enableI)
-  apply (rule ballI)
-  by auto
+ by (rule not_enableI, rule ballI, auto)
 
 lemma not_enableE: "\<lbrakk> ~(enables I l a t); (p,e) \<in> delta I (graphI I) l \<rbrakk>
                  \<Longrightarrow> (~(t : e) |  (~(p(a))))"
-  apply (simp add: enables_def)
-  apply (rule impI)
- by force
+  by (simp add: enables_def, rule impI, force)
 
 lemma not_enableE2: "\<lbrakk> ~(enables I l a t); (p,e) \<in> delta I (graphI I) l;
                      t : e \<rbrakk> \<Longrightarrow> (~(p(a)))"
-  apply (simp add: enables_def)
- by force
+  by (simp add: enables_def, force)
 
    (*
 lemma Fend_1: "\<lbrakk> Actor ''Bob'' \<noteq> Actor ''Eve''; Actor ''Charly'' \<noteq> Actor ''Eve'';
@@ -664,9 +958,7 @@ lemma Fend_1: "\<lbrakk> Actor ''Bob'' \<noteq> Actor ''Eve''; Actor ''Charly'' 
 *)
    
 lemma delta_invariant: "\<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow>  delta(z) = delta(z')"    
-  apply clarify
-  apply (erule state_transition_in.cases)
- by simp+
+  by (clarify, erule state_transition_in.cases, simp+)
 
 lemma init_state_policy0: "\<lbrakk> \<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow>  delta(z) = delta(z'); 
                           (x,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<rbrakk> \<Longrightarrow> 
@@ -694,23 +986,15 @@ by assumption
  
 lemma init_state_policy: "\<lbrakk> (x,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<rbrakk> \<Longrightarrow> 
                           delta(x) = delta(y)"  
-  apply (rule init_state_policy0)
-    apply (rule delta_invariant)
-  by assumption
+  by (rule init_state_policy0, rule delta_invariant, assumption)
     
  lemma same_nodes0[rule_format]: "\<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow> nodes(graphI z) = nodes(graphI z')"   
-    apply clarify
-  apply (erule state_transition_in.cases)
-  by (simp add: move_graph_a_def atI_def actors_graph_def nodes_def)+
+   by (clarify, erule state_transition_in.cases, 
+       (simp add: move_graph_a_def atI_def actors_graph_def nodes_def)+)
  
 lemma same_nodes: "(I, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
                    \<Longrightarrow> nodes(graphI y) = nodes(graphI I)"  
-  apply (erule rtrancl_induct)
-   apply (rule refl)
-  apply (drule CollectD)
-    apply simp
-    apply (drule same_nodes0)
-  by simp  
+  by (erule rtrancl_induct, rule refl, drule CollectD, simp, drule same_nodes0, simp)  
   
     
 lemma same_actors0[rule_format]: "\<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow> actors_graph(graphI z) = actors_graph(graphI z')"   
