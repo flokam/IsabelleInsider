@@ -782,25 +782,48 @@ lemma actors_unique_loc_aid_step:
    rule. *)
 
 lemma Anid_airplane_actors: "actors_graph (graphI Airplane_not_in_danger_init) = airplane_actors"
-  apply (simp add: Airplane_not_in_danger_init_def ex_graph_def actors_graph_def nodes_def airplane_actors_def)
-  apply (rule equalityI)
-   apply (rule subsetI)
-   apply (drule CollectD)
-   apply (erule exE)
-   apply (erule conjE)+
-   apply (simp add: door_def cockpit_def cabin_def)
-   apply (erule conjE)+
-    apply force
-  apply (rule subsetI)
-  apply (rule CollectI)
-       apply (simp add: door_def cockpit_def cabin_def)
-  apply (case_tac "x = ''Bob''")
-   apply force
-      apply (case_tac "x = ''Charly''")
-   apply force
-  apply (subgoal_tac "x = ''Alice''")
-   apply force
-by simp    
+proof (simp add: Airplane_not_in_danger_init_def ex_graph_def actors_graph_def nodes_def 
+                 airplane_actors_def, rule equalityI)
+  show "{x::char list.
+     \<exists>y::location.
+        (y = door \<longrightarrow>
+         (door = cockpit \<longrightarrow>
+          (\<exists>y::location. y = cockpit \<or> y = cabin \<or> y = cockpit \<or> y = cockpit \<and> cockpit = cabin) \<and>
+          (x = ''Bob'' \<or> x = ''Charly'')) \<and>
+         door = cockpit) \<and>
+        (y \<noteq> door \<longrightarrow>
+         (y = cockpit \<longrightarrow>
+          (\<exists>y::location.
+              y = door \<or>
+              cockpit = door \<and> y = cabin \<or>
+              y = cockpit \<and> cockpit = door \<or> y = door \<and> cockpit = cabin) \<and>
+          (x = ''Bob'' \<or> x = ''Charly'')) \<and>
+         (y \<noteq> cockpit \<longrightarrow> y = cabin \<and> x = ''Alice'' \<and> y = cabin))}
+    \<subseteq> {''Bob'', ''Charly'', ''Alice''}"
+  by (rule subsetI, drule CollectD, erule exE, (erule conjE)+,
+      simp add: door_def cockpit_def cabin_def, (erule conjE)+, force)
+next show "{''Bob'', ''Charly'', ''Alice''}
+    \<subseteq> {x::char list.
+        \<exists>y::location.
+           (y = door \<longrightarrow>
+            (door = cockpit \<longrightarrow>
+             (\<exists>y::location.
+                 y = cockpit \<or> y = cabin \<or> y = cockpit \<or> y = cockpit \<and> cockpit = cabin) \<and>
+             (x = ''Bob'' \<or> x = ''Charly'')) \<and>
+            door = cockpit) \<and>
+           (y \<noteq> door \<longrightarrow>
+            (y = cockpit \<longrightarrow>
+             (\<exists>y::location.
+                 y = door \<or>
+                 cockpit = door \<and> y = cabin \<or>
+                 y = cockpit \<and> cockpit = door \<or> y = door \<and> cockpit = cabin) \<and>
+             (x = ''Bob'' \<or> x = ''Charly'')) \<and>
+            (y \<noteq> cockpit \<longrightarrow> y = cabin \<and> x = ''Alice'' \<and> y = cabin))}"
+  by (rule subsetI, rule CollectI, simp add: door_def cockpit_def cabin_def,
+      case_tac "x = ''Bob''", force, case_tac "x = ''Charly''", force,
+      subgoal_tac "x = ''Alice''", force, simp)    
+qed
+
    
 (*later show that (Anid, I) \<in> {(x,y). x \<rightarrow> y}* \<longrightarrow> actors_graph Anid = actors_graph I 
   and also that   actors_graph Anid = airplane_actors and thus 
@@ -810,65 +833,40 @@ by simp
    is only important to have a fixed set for all I equal to actors_graph I since
    we can show that n and a are in actors_graph I (?). *)
 
-
-
 (* Lemma to apply the previous stuff within the lemma below *)
 
 lemma all_airplane_actors: "(Airplane_not_in_danger_init, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
               \<Longrightarrow> actors_graph(graphI y) = airplane_actors"
-apply (insert Anid_airplane_actors)  
-  apply (erule subst)  
-    apply (rule sym)
-by (erule same_actors)
+  by (insert Anid_airplane_actors, erule subst, rule sym, erule same_actors)
       
 lemma actors_at_loc_in_graph: "\<lbrakk> l \<in> nodes(graphI I); a  @\<^bsub>graphI I\<^esub> l\<rbrakk>
                                 \<Longrightarrow> a \<in> actors_graph (graphI I)"
-  apply (simp add: atI_def actors_graph_def)
-  by (rule exI, rule conjI, assumption, assumption)
-    
-lemma not_en_get_Apnid: "(Airplane_not_in_danger_init,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
-         \<Longrightarrow> ~(enables y l (Actor a) get)"
-  apply (subgoal_tac "delta y = delta(Airplane_not_in_danger_init)")
-apply (simp add: Airplane_not_in_danger_init_def enables_def local_policies_four_eyes_def)    
-  apply (rule sym)
-    by (erule init_state_policy)
+  by (simp add: atI_def actors_graph_def, rule exI, rule conjI)
+
+lemma not_en_get_Apnid: 
+  assumes "(Airplane_not_in_danger_init,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
+  shows   "~(enables y l (Actor a) get)"
+proof -
+  have "delta y = delta(Airplane_not_in_danger_init)" 
+  by (insert assms, rule sym, erule_tac init_state_policy)
+  with assms show ?thesis 
+    by (simp add: Airplane_not_in_danger_init_def enables_def local_policies_four_eyes_def)    
+qed
  
 lemma Apnid_tsp_test: "~(enables Airplane_not_in_danger_init cockpit (Actor ''Alice'') get)"    
   by (simp add: Airplane_not_in_danger_init_def ex_creds_def enables_def 
-                   local_policies_four_eyes_def cabin_def door_def cockpit_def 
-                   ex_graph_def ex_locs_def)
+                local_policies_four_eyes_def cabin_def door_def cockpit_def 
+                ex_graph_def ex_locs_def)
 
 lemma Apnid_tsp_test_gen: "~(enables Airplane_not_in_danger_init l (Actor a) get)"    
   by (simp add: Airplane_not_in_danger_init_def ex_creds_def enables_def 
-                   local_policies_four_eyes_def cabin_def door_def cockpit_def 
-                   ex_graph_def ex_locs_def)
+                local_policies_four_eyes_def cabin_def door_def cockpit_def 
+                ex_graph_def ex_locs_def)
 
 lemma test_graph_atI: "''Bob'' @\<^bsub>graphI Airplane_not_in_danger_init\<^esub> cockpit" 
   by (simp add: Airplane_not_in_danger_init_def ex_graph_def atI_def)  
 
-(* Comments of changes of tspace and lspace wrt earlier versions:
-   Now tspace and lspace have a semantics based on the state i.e.
-   the graph/infrastructure. Based on this semantics, we have definitions now 
-   in AirInsider for 
-   role(Actor x, r) and has(Actor y, c) as well as for locations
-   for isin l s .  For example tspace (Actor a) does not return
-   just bool as before but all roles and credentials that the actor has. A policy 
-   would still state has (x,''PIN'') for example but the ex_creds map assigns a 
-   pair of lists instead of bool. 
-   Semantics of has is achieved by extending the type with infrastructure
-   has :: [infrastructure, (actor *string)] \<Rightarrow> bool but with semantics
-   "has I (a, c) == (a,c) \in credentials(tspace I a)
-   where credential is an acronym for lambda lxl. set(first lxl)
-   similar for role with projection roles lxl = set(snd lxl) 
-   [infrastructure, (actor *string)] \<Rightarrow> bool where
-   role I (a, r) == (a, r) \in roles(tspace I a)
-   For lspace we define isin
-   isin :: [infrastructure, location, string] \<Rightarrow> bool where
-   isin I l s == (l,s) \in set(lspace I l) 
-   we don't need projections here since lspace is just one table
-   (i.e. list of pairs (location * string)).
-*)    
-    
+
 (* Invariant: number of staff in cockpit never below 2 *)
 
 lemma two_person_inv[rule_format]: "\<forall> z z'. (2::nat) \<le> length (agra (graphI z) cockpit) \<and> 
@@ -939,15 +937,15 @@ lemma two_person_inv[rule_format]: "\<forall> z z'. (2::nat) \<le> length (agra 
         because then we can get from Actor n = Actor a that n = a.
         We still need the lemma (1) above to get the contradiction to 
         n @\<^bsub>G\<^esub> door and a @\<^bsub>G\<^esub> cockpit and door \<noteq> cockpit.
-        (It's an invariant, i.e. we need to show that it's preserved by \<rightarrow>i and
-         that if it holds for x and x \<rightarrow>i* y then it also holds for y so we can
+        (It's an invariant, i.e. we need to show that it's preserved by \<rightarrow>\<^sub>n and
+         that if it holds for x and x \<rightarrow>\<^sub>n* y then it also holds for y so we can
          then show this invariant for a state that comes from some initial state
          like Airplane_not_in_danger where invariant holds)
        Now, we still need to get n \<noteq> ''Eve'' and a \<noteq> ''Eve'': the latter could be 
        derived from showing showing that a \<in> airplane_actors which follows from
         a @\<^bsub>graphI I\<^esub> cockpit and similarly  n \<noteq> ''Eve''from n @\<^bsub>graphI I\<^esub> door 
       by using another invariant ~ (''Eve'' @\<^bsub>graphI I'\<^esub> l) \<forall> l \<in> nodes (graphI I')
-      if I \<rightarrow>i* I'  und ~(''Eve'' @\<^bsub>graphI I'\<^esub> l) \<forall> l \<in> (nodes (graphI I)).
+      if I \<rightarrow>\<^sub>i* I'  und ~(''Eve'' @\<^bsub>graphI I'\<^esub> l) \<forall> l \<in> (nodes (graphI I)).
 
       It might seem a bit dodgy to prove all these strong safety ad security statements
       based on the assumption that Eve is never in the airplane but the insiderness
