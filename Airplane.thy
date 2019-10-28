@@ -688,234 +688,88 @@ next show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) 
 qed   
 
 
-(*
-lemma actors_unique_loc_base0: "\<lbrakk> I \<rightarrow>\<^sub>n I' ; 
-       (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
-       (\<forall> l. nodup a (agra (graphI I) l)) \<rbrakk> \<Longrightarrow> 
-        (\<forall> l l'. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l'  \<longrightarrow> l = l') \<and>
-         (\<forall> l. nodup a (agra (graphI I') l))"
-  apply (erule state_transition_in.cases)
-     apply clarify
-     defer
-     apply clarify
-     apply (simp add: atI_def)
-    apply clarify
-    apply (simp add: atI_def)
-   apply clarify
-   apply (simp add: atI_def)
-  apply (simp add: move_graph_a_def)
- apply (rule conjI)   
-   apply clarify
-   apply (rule conjI)
-    apply clarify
-    apply (rule conjI)
-     apply clarify
-      apply (case_tac "la \<noteq> l' \<and> la \<noteq> l \<and> l'a \<noteq> l' \<and> l'a \<noteq> l")
-   apply (simp add: atI_def)
-  apply (subgoal_tac "la = l' \<or> la = l \<or> l'a = l' \<or> l'a = l")
-  prefer 2
-      apply blast
-  (* *)  
-  apply (erule disjE)
-   apply (case_tac "l'a = l'")
-    apply simp
-   apply simp 
-   apply (case_tac "l'a = l")
-       apply (simp add :atI_def)
-       apply (subgoal_tac "a \<notin> set (del a (agra (graphI I) l))")
-        apply (erule notE,assumption)
-        apply (rule del_nodup)
-       apply (erule spec)
-      apply (simp add: atI_def)
-    (* *)
-   apply (erule disjE) 
-      apply (simp add: atI_def)
-    apply (case_tac "l'a = l'")
-       apply simp 
-       apply (case_tac "l = l'")
-    apply assumption
-       apply (simp add: atI_def)
-          apply (subgoal_tac "a \<notin> set (del a (agra (graphI I) l))")
-        apply (erule notE,assumption)
-        apply (rule del_nodup)
-       apply (erule spec)
-   apply (case_tac "l'a = l")
-       apply (simp add :atI_def)
-      apply simp
-    (* *)
-     apply (erule disjE)
-    apply (simp add: atI_def)
-    apply (case_tac "la = l'")
-       apply assumption
-      apply simp
-      apply (case_tac "la = l")
-       apply simp
-              apply (subgoal_tac "a \<notin> set (del a (agra (graphI I) l))")
-        apply (erule notE,assumption)
-        apply (rule del_nodup)
-       apply (erule spec)
-      apply simp
-    (* *)
-     apply (simp add: atI_def)
-     apply (case_tac "la = l'")
-      apply simp
-      apply (case_tac "l = l'")
-    apply (erule sym)
-      apply simp
-                 apply (subgoal_tac "a \<notin> set (del a (agra (graphI I) l))")
-        apply (erule notE,assumption)
-        apply (rule del_nodup)
-       apply (erule spec)
-    (* *)
-     apply simp
-     apply (case_tac "la = l")
-      apply assumption
-     apply simp
-    (***  ***)
-    apply (rule impI)
-    apply (rule nodup_down)
-    apply (erule spec)
-(* *)
-   apply clarify
-   apply (simp add: atI_def)
-  apply clarify
-  apply (rule conjI)
-   apply clarify
-   apply (rule conjI)
-    apply clarify
-    apply (simp add: atI_def)
-    (* *)
-    apply (case_tac "la = l'")
-    apply (simp add: atI_def)
-     apply (case_tac "l'a = l'")
-      apply (erule sym)
-     apply simp
-     apply (case_tac "l'a = l")
-      apply simp
-      apply (subgoal_tac "a \<in> set (agra (graphI I) l)")
-       apply (subgoal_tac "l = l'")
-        apply simp
-    apply force
-      apply (erule del_up)
-     apply simp
-    apply simp
-    apply (case_tac "l'a = l'")
-     apply simp
-     apply (case_tac "la = l")
-      apply simp
-          apply (subgoal_tac "a \<in> set (agra (graphI I) l)")
-       apply (subgoal_tac "l = l'")
-        apply simp
-    apply force
-      apply (erule del_up)
-     apply simp
-    apply simp
-    apply (case_tac "la = l")
-     apply simp
-     apply (case_tac "l'a = l")
-      apply (erule sym)
-    apply simp
-              apply (subgoal_tac "a \<in> set (agra (graphI I) l)")
-      apply (subgoal_tac "l'a = l")
-       apply simp
-      apply force
-    apply (erule del_up)
-  apply simp
-  apply (case_tac "l'a = l")
-     apply simp
-                  apply (subgoal_tac "a \<in> set (agra (graphI I) l)")
-      apply (subgoal_tac "la = l")
-    (* instead of simp *)
-       apply (erule notE,assumption)
-    (* instead of force *)
-    apply (drule spec, drule spec, erule impE, rule conjI, assumption, assumption, assumption)
-     apply (erule del_up)
-    apply simp
-    (* *)
-   apply (rule impI)
-   apply (rule nodup_down_notin)
-   apply (erule spec)
-    (* *)
-  apply clarify
-by (simp add: atI_def)
-*)
+lemma actors_unique_loc_step: 
+  assumes "(I, I') \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
+      and "\<forall> a. (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
+          (\<forall> l. nodup a (agra (graphI I) l))" 
+    shows   "\<forall> a. (\<forall> l l'. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l'  \<longrightarrow> l = l') \<and>
+          (\<forall> l. nodup a (agra (graphI I') l))"
+proof -
+  have ind: "(\<forall> a. (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
+          (\<forall> l. nodup a (agra (graphI I) l))) \<longrightarrow>
+       (\<forall> a. (\<forall> l l'. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l'  \<longrightarrow> l = l') \<and>
+          (\<forall> l. nodup a (agra (graphI I') l)))"
+  proof (insert assms(1), erule rtrancl.induct)
+    show "\<And>a::infrastructure.
+       (\<forall>aa::char list.
+           (\<forall>(l::location) l'::location. aa @\<^bsub>graphI a\<^esub> l \<and> aa @\<^bsub>graphI a\<^esub> l' \<longrightarrow> l = l') \<and>
+           (\<forall>l::location. nodup aa (agra (graphI a) l))) \<longrightarrow>
+       (\<forall>aa::char list.
+           (\<forall>(l::location) l'::location. aa @\<^bsub>graphI a\<^esub> l \<and> aa @\<^bsub>graphI a\<^esub> l' \<longrightarrow> l = l') \<and>
+           (\<forall>l::location. nodup aa (agra (graphI a) l)))" by simp
+  next show "\<And>(a::infrastructure) (b::infrastructure) (c::infrastructure).
+       (a, b) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+       (\<forall>aa::char list.
+           (\<forall>(l::location) (l'::location). (aa @\<^bsub>graphI a\<^esub> l \<and> aa @\<^bsub>graphI a\<^esub> l') \<longrightarrow> l = l') \<and>
+           (\<forall>l::location. nodup aa (agra (graphI a) l))) \<longrightarrow>
+       (\<forall>a::char list.
+           (\<forall>(l::location) (l'::location). (a @\<^bsub>graphI b\<^esub> l \<and> a @\<^bsub>graphI b\<^esub> l') \<longrightarrow> l = l') \<and>
+           (\<forall>l::location. nodup a (agra (graphI b) l))) \<Longrightarrow>
+       (b, c) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y} \<Longrightarrow>
+       (\<forall>aa::char list.
+           (\<forall>(l::location) l'::location. (aa @\<^bsub>graphI a\<^esub> l \<and> aa @\<^bsub>graphI a\<^esub> l') \<longrightarrow> l = l') \<and>
+           (\<forall>l::location. nodup aa (agra (graphI a) l))) \<longrightarrow>
+       (\<forall>a::char list.
+           (\<forall>(l::location) l'::location. (a @\<^bsub>graphI c\<^esub> l \<and> a @\<^bsub>graphI c\<^esub> l') \<longrightarrow> l = l') \<and>
+           (\<forall>l::location. nodup a (agra (graphI c) l)))"
+      by (rule impI, rule allI, rule actors_unique_loc_base, drule CollectD, 
+             simp,erule impE, assumption, erule spec)   
+  qed
+  show ?thesis 
+  by (insert ind, insert assms(2), simp)
+qed
 
-  lemma actors_unique_loc_step: "\<lbrakk> (I, I') \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* ; 
-       \<forall> a. (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
-       (\<forall> l. nodup a (agra (graphI I) l)) \<rbrakk> \<Longrightarrow> 
-        \<forall> a. (\<forall> l l'. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l'  \<longrightarrow> l = l') \<and>
-         (\<forall> l. nodup a (agra (graphI I') l))"
-    apply (rule mp)
-  prefer 2
-   apply (rotate_tac 1)
-    apply assumption
-  thm rtrancl_induct
-     apply (erule rtrancl.induct)
-   apply simp
-    apply (rule impI)
-  apply (rule allI)
-  apply (rule actors_unique_loc_base)
-   apply (drule CollectD)
-   apply simp
-  apply (erule impE)
-   apply assumption
-by (erule spec)   
-  
 lemma actors_unique_loc_aid_base:"
  \<forall> a. (\<forall> l l'. a @\<^bsub>graphI Airplane_not_in_danger_init\<^esub> l \<and> 
                a @\<^bsub>graphI Airplane_not_in_danger_init\<^esub> l' \<longrightarrow> l = l')\<and>
          (\<forall> l. nodup a (agra (graphI Airplane_not_in_danger_init) l))"  
-  apply (simp add: Airplane_not_in_danger_init_def ex_graph_def)
-  apply clarify
-  apply (rule conjI)
-   apply clarify
-   apply (rule conjI)
-    apply clarify
-   apply (rule impI)
-   apply (rule allI)+
-   apply (rule impI)
-    apply (simp add: atI_def)
-  apply (case_tac "l = l'")
-    apply assumption
-   apply (rule FalseE)
-  apply (case_tac "l = cockpit \<or> l = door \<or> l = cabin")
-    apply (erule disjE)
-     apply simp
-     apply (case_tac "l' = door \<or> l' = cabin")
-    apply (erule disjE)
-       apply simp
-      apply (simp add: cabin_def door_def)
-     apply simp
-    apply (erule disjE)
-    apply (simp add: door_def cockpit_def)
-    apply (simp add: cabin_def door_def cockpit_def)
-   apply simp
-  apply clarify
-  apply (simp add: atI_def)
-   apply (case_tac "l = l'")
-    apply assumption
-   apply (rule FalseE)
-  apply (case_tac "l = cockpit \<or> l = door \<or> l = cabin")
-    apply (erule disjE)
-     apply simp
-     apply (case_tac "l' = door \<or> l' = cabin")
-    apply (erule disjE)
-       apply simp
-      apply (simp add: cabin_def door_def)
-     apply simp
-    apply (erule disjE)
-    apply (simp add: door_def cockpit_def)
-    apply (case_tac "l = cockpit") 
-    apply (simp add: cabin_def cockpit_def)
-   apply (simp add: cabin_def door_def)
-    apply (case_tac "l' = cockpit")
-   apply simp
-   apply (simp add: cabin_def)
-   apply (case_tac "l' = door")
-    apply simp
-   apply (simp add: cabin_def)
-  by simp
-    
+proof (simp add: Airplane_not_in_danger_init_def ex_graph_def, clarify, rule conjI, clarify,
+      rule conjI, clarify, rule impI, (rule allI)+, rule impI, simp add: atI_def)
+  show "\<And>(l::location) l'::location.
+       ''Charly''
+       \<in> set (if l = cockpit then [''Bob'', ''Charly'']
+               else if l = door then [] else if l = cabin then [''Alice''] else []) \<and>
+       ''Charly''
+       \<in> set (if l' = cockpit then [''Bob'', ''Charly'']
+               else if l' = door then [] else if l' = cabin then [''Alice''] else []) \<Longrightarrow>
+       l = l'"
+  by (case_tac "l = l'", assumption, rule FalseE, case_tac "l = cockpit \<or> l = door \<or> l = cabin",
+      erule disjE, simp, case_tac "l' = door \<or> l' = cabin", erule disjE, simp, 
+      simp add: cabin_def door_def, simp, erule disjE, simp add: door_def cockpit_def, 
+      simp add: cabin_def door_def cockpit_def, simp)
+next show "\<And>a::char list.
+       ''Charly'' \<noteq> a \<longrightarrow>
+       (\<forall>(l::location) l'::location.
+           a @\<^bsub>Lgraph {(cockpit, door), (door, cabin)}
+                (\<lambda>x::location.
+                    if x = cockpit then [''Bob'', ''Charly'']
+                    else if x = door then [] else if x = cabin then [''Alice''] else [])
+                ex_creds ex_locs\<^esub> l \<and>
+           a @\<^bsub>Lgraph {(cockpit, door), (door, cabin)}
+                (\<lambda>x::location.
+                    if x = cockpit then [''Bob'', ''Charly'']
+                    else if x = door then [] else if x = cabin then [''Alice''] else [])
+                ex_creds ex_locs\<^esub> l' \<longrightarrow>
+           l = l')"
+  by (clarify, simp add: atI_def, case_tac "l = l'", assumption, rule FalseE,
+      case_tac "l = cockpit \<or> l = door \<or> l = cabin", erule disjE, simp,
+      case_tac "l' = door \<or> l' = cabin", erule disjE, simp, simp add: cabin_def door_def,
+      simp, erule disjE, simp add: door_def cockpit_def, case_tac "l = cockpit",
+      simp add: cabin_def cockpit_def, simp add: cabin_def door_def, case_tac "l' = cockpit",
+      simp, simp add: cabin_def, case_tac "l' = door", simp, simp add: cabin_def, simp)
+qed
+
+   
 lemma actors_unique_loc_aid_step: 
 "(Airplane_not_in_danger_init, I)\<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
  \<Longrightarrow>     \<forall> a. (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
@@ -926,136 +780,6 @@ lemma actors_unique_loc_aid_step:
    also express (and prove!) unreachability properties which enable to 
    formally verify security properties for specific policies, like two-person
    rule. *)
-lemma not_enableI: "(\<forall> (p,e) \<in> delta I (graphI I) l. (~(h : e) | (~(p(a))))) 
-                     \<Longrightarrow> ~(enables I l a h)"
-  by (simp add: enables_def, blast)
-
-lemma not_enableI2: "\<lbrakk>\<And> p e. (p,e) \<in> delta I (graphI I) l \<Longrightarrow>
-                 (~(t : e) |  (~(p(a)))) \<rbrakk> \<Longrightarrow> ~(enables I l a t)"
- by (rule not_enableI, rule ballI, auto)
-
-lemma not_enableE: "\<lbrakk> ~(enables I l a t); (p,e) \<in> delta I (graphI I) l \<rbrakk>
-                 \<Longrightarrow> (~(t : e) |  (~(p(a))))"
-  by (simp add: enables_def, rule impI, force)
-
-lemma not_enableE2: "\<lbrakk> ~(enables I l a t); (p,e) \<in> delta I (graphI I) l;
-                     t : e \<rbrakk> \<Longrightarrow> (~(p(a)))"
-  by (simp add: enables_def, force)
-
-   (*
-lemma Fend_1: "\<lbrakk> Actor ''Bob'' \<noteq> Actor ''Eve''; Actor ''Charly'' \<noteq> Actor ''Eve'';
-                Actor ''Alice'' \<noteq> Actor ''Eve'' \<rbrakk> 
-              \<Longrightarrow> \<not> enables Airplane_not_in_danger_init cockpit (Actor ''Eve'') put"
-  apply (rule not_enableI2)
-  apply simp
-  apply (rule impI)
-   apply (simp add: Airplane_not_in_danger_init_def)
-   apply (simp add: local_policies_four_eyes_def)
-   apply (erule disjE)
-    prefer 2
-    apply simp
- by (simp add: ex_graph_def ex_creds_def ex_locs_def)
-*)
-   
-lemma delta_invariant: "\<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow>  delta(z) = delta(z')"    
-  by (clarify, erule state_transition_in.cases, simp+)
-
-lemma init_state_policy0: "\<lbrakk> \<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow>  delta(z) = delta(z'); 
-                          (x,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<rbrakk> \<Longrightarrow> 
-                          delta(x) = delta(y)"  
-  apply (rule mp)
-  prefer 2
-   apply (rotate_tac 1)
-    apply assumption
-  thm rtrancl_induct
-  apply (erule rtrancl_induct)  
-    apply (rule impI)
-   apply (rule refl)
-    apply (subgoal_tac "delta y = delta z")
-   apply (erule impE)
-    apply assumption
-    apply (rule impI)
-   apply (rule trans)
-    apply assumption+
-  apply (drule_tac x = y in spec)
-  apply (drule_tac x = z in spec)
-    apply (rotate_tac -1)
-  apply (erule impE)
-    apply simp
-by assumption
- 
-lemma init_state_policy: "\<lbrakk> (x,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<rbrakk> \<Longrightarrow> 
-                          delta(x) = delta(y)"  
-  by (rule init_state_policy0, rule delta_invariant, assumption)
-    
- lemma same_nodes0[rule_format]: "\<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow> nodes(graphI z) = nodes(graphI z')"   
-   by (clarify, erule state_transition_in.cases, 
-       (simp add: move_graph_a_def atI_def actors_graph_def nodes_def)+)
- 
-lemma same_nodes: "(I, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
-                   \<Longrightarrow> nodes(graphI y) = nodes(graphI I)"  
-  by (erule rtrancl_induct, rule refl, drule CollectD, simp, drule same_nodes0, simp)  
-  
-    
-lemma same_actors0[rule_format]: "\<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow> actors_graph(graphI z) = actors_graph(graphI z')"   
-    apply clarify
-  apply (erule state_transition_in.cases)
-    defer
-     apply (simp add: actors_graph_def nodes_def)
-     apply (simp add: actors_graph_def nodes_def)
-   apply (simp add: actors_graph_def nodes_def)
-  apply (rule equalityI)
-  apply (rule subsetI)
-  apply (simp add: actors_graph_def)
-   apply (erule exE)+
-   apply (case_tac "x = a")
-    apply (rule_tac x = "l'" in exI)
-    apply (simp add: move_graph_a_def nodes_def atI_def)
-   apply (rule_tac x = ya in exI)
-    apply (rule conjI)
-    apply (simp add: move_graph_a_def nodes_def atI_def)
-   apply (erule conjE)+
-   apply (simp add: move_graph_a_def)
-   apply (rule conjI)
-   apply clarify
-    apply (simp add: move_graph_a_def nodes_def atI_def)
-    apply (rule del_not_a)
-     apply assumption+
-   apply clarify
-    (* *)
-  apply (rule subsetI)
-  apply (simp add: actors_graph_def)
-  apply (erule exE)+
-  apply (case_tac "x = a")
-   apply (rule_tac x = "l" in exI)
-        apply (simp add: move_graph_a_def nodes_def atI_def)
-   apply (rule_tac x = ya in exI)
-    apply (rule conjI)
-    apply (simp add: move_graph_a_def nodes_def atI_def)
-   apply (erule conjE)+
-  apply (simp add: move_graph_a_def)
-  apply (case_tac "ya = l")
-   apply simp
-   apply (case_tac "a \<in> set (agra (graphI I) l) \<and> a \<notin> set (agra (graphI I) l')")
-    apply simp
-    apply (case_tac "l = l'")
-     apply simp+
-    apply (erule del_up)
-   apply simp
-   apply (case_tac "a \<in> set (agra (graphI I) l) \<and> a \<notin> set (agra (graphI I) l')")
-   apply simp
-   apply (case_tac "ya = l'")
-by simp+
-  
-lemma same_actors: "(I, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
-              \<Longrightarrow> actors_graph(graphI I) = actors_graph(graphI y)"
-  
-    apply (erule rtrancl_induct)
-   apply (rule refl)
-  apply (drule CollectD)
-    apply simp
-    apply (drule same_actors0)
-  by simp  
 
 lemma Anid_airplane_actors: "actors_graph (graphI Airplane_not_in_danger_init) = airplane_actors"
   apply (simp add: Airplane_not_in_danger_init_def ex_graph_def actors_graph_def nodes_def airplane_actors_def)
