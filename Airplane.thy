@@ -1185,10 +1185,8 @@ apply blast
 lemma Eve_not_in_cockpit: "(Airplane_not_in_danger_init, I)
        \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
        x \<in> set (agra (graphI I) cockpit) \<Longrightarrow> x \<noteq> ''Eve''"
-  apply (drule airplane_actors_inv)
-  apply (simp add: airplane_actors_def)
-  apply (drule_tac x = x in bspec, assumption)
-    by force
+ by (drule airplane_actors_inv, simp add: airplane_actors_def,
+     drule_tac x = x in bspec, assumption, force)
     
 (* 2 person invariant implies that there is always some x in cockpit x \<noteq> Eve *)      
 lemma tp_imp_control: "(Airplane_not_in_danger_init,I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
