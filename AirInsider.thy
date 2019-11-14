@@ -2,10 +2,31 @@ theory AirInsider
 imports MC
 begin
 datatype action = get | move | eval |put
+
 typedecl actor 
+consts Actor :: "string \<Rightarrow> actor" 
+(*
+context 
+  fixes Abs Rep actor
+  assumes td: "type_definition Abs Rep actor"
+begin
+definition Actor where "Actor = Abs"
+...doesn't work for replacing the actor typedecl because 
+in "type_definition" above the "actor" is a set not a type!
+so can't be used for our purposes. 
+*)
+(* Try locale instead for polymorphic type Actor 
+locale ACT =
+  fixes Actor :: "string \<Rightarrow> 'actor"
+begin ...
+That is a nice idea and works quite far but clashes with the generic
+state_transition later (it's not possible to instantiate within a locale
+and outside it we cannot instantiate "'a infrastructure" to state (clearly 
+an abstract thing as an instance is strange)
+*)
+
 type_synonym identity = string
-consts Actor :: "string => actor"
-type_synonym policy = "((actor => bool) * action set)"
+type_synonym  policy = "((actor \<Rightarrow> bool) * action set)"
 
 definition ID :: "[actor, string] \<Rightarrow> bool"
 where "ID a s \<equiv> (a = Actor s)"
@@ -16,7 +37,7 @@ datatype igraph = Lgraph "(location * location)set" "location \<Rightarrow> iden
                          "actor \<Rightarrow> (string list * string list)"  "location \<Rightarrow> string list"
 datatype infrastructure = 
          Infrastructure "igraph" 
-                        "[igraph ,location] \<Rightarrow> policy set" 
+                        "[igraph, location] \<Rightarrow> policy set" 
                        
 primrec loc :: "location \<Rightarrow> nat"
 where  "loc(Location n) = n"
@@ -98,18 +119,18 @@ where "UasI' P a b \<equiv> P (Actor b) \<longrightarrow> P (Actor a)"
 
 (* astate assigns the state (motivations and mood) to an identity, see above
 for actor_state *)
-consts astate :: "identity \<Rightarrow> actor_state"
+(* consts astate :: "identity \<Rightarrow> actor_state" *)
 
-(* Two versions of Insider predicate correspondong to UasI and UasI'.
+(* Two versions of Insider predicate corresponding to UasI and UasI'.
 Under the assumption that the tipping point has been reached for a person a
 then a can impersonate all b (take all of b's "roles") where
 the b's are specified by a given set of identities *)
-definition Insider :: "[identity, identity set] \<Rightarrow> bool" 
-where "Insider a C \<equiv> (tipping_point (astate a) \<longrightarrow> (\<forall> b\<in>C. UasI a b))"
+definition Insider :: "[identity, identity set, identity \<Rightarrow> actor_state] \<Rightarrow> bool" 
+where "Insider a C as \<equiv> (tipping_point (as a) \<longrightarrow> (\<forall> b\<in>C. UasI a b))"
 
 
-definition Insider' :: "[actor \<Rightarrow> bool, identity, identity set] \<Rightarrow> bool" 
-where "Insider' P a C \<equiv> (tipping_point (astate a) \<longrightarrow> (\<forall> b\<in>C. UasI' P a b \<and> inj_on Actor C))"
+definition Insider' :: "[actor \<Rightarrow> bool, identity, identity set, identity \<Rightarrow> actor_state] \<Rightarrow> bool" 
+where "Insider' P a C as \<equiv> (tipping_point (as a) \<longrightarrow> (\<forall> b\<in>C. UasI' P a b \<and> inj_on Actor C))"
 
 (* restriction in new version for WRIT 16 *)
 definition atI :: "[identity, igraph, location] \<Rightarrow> bool" ("_ @\<^bsub>(_)\<^esub> _" 50)
