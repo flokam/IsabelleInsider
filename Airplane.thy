@@ -1573,17 +1573,64 @@ print_interps airplane
 axiomatization where
 cockpit_foe_control': "foe_control cockpit put"
 
-(* doesn't work: creates ad iffernt type actor!
-typedef actor = "{x :: string. x \<noteq> ''Eve''}"
-  by auto
-thm Rep_actor
-axiomatization where Actor_def:
-"Actor = (\<lambda> x :: identity. if x = ''Eve'' then Abs_actor(''Charly'') else Abs_actor(x))"
-*)
+(* Unfortunately, we need axiomatization to add the missing semantics to the 
+  const Actor. Since Actor has been defined as a consts without defs one
+  would hope that it is feasible to add this at a later stage -- but alas no.
+  The alternative of using a Locale to replace the abstract type_decl actor
+  is not working properly since it necessitates introducing a type parameter
+  'actor into infrastructures which then makes it impossible to instantiate
+  them to the typeclass state in order to use CTL and Kripke and the generic
+  state transition 
+Either simply assume the needed property:
 axiomatization where UasIax: "UasI ''Eve'' ''Charly''"
-(* Unfortunately, we need an axiom to add the missing semantics to the 
-  const Actor 
+
+Or go the recommended way of a post-hoc axiomatic redefinition of the 
+abstract type actor by using axiomatization of the Locale type_definition:
 *)
+
+definition Actor_Rep :: "identity \<Rightarrow> identity option"
+  where 
+"Actor_Rep x \<equiv> (if x \<in> {''Eve'', ''Charly''} then None else Some x)"
+
+lemma UasI_ActorRep: "Actor_Rep ''Eve'' = Actor_Rep ''Charly'' \<and>
+    (\<forall>(x::char list) y::char list. x \<noteq> ''Eve'' \<and> y \<noteq> ''Eve'' \<and> Actor_Rep x = Actor_Rep y \<longrightarrow> x = y)"
+by (simp add: Actor_Rep_def)
+
+(* impossible to axiomatize types as being equal
+axiomatization where actor_def: "(UNIV :: actor set) = (UNIV:: identity option set)"
+*)
+
+(* With this kind of axiomatization, we can simulate the abstract type actor
+   and postulate some unspecified Abs and Rep functions between it and the
+   simulated identity option subtype. *)
+axiomatization where Actor_type_def: 
+"type_definition (Rep :: actor \<Rightarrow> identity option)(Abs :: identity option \<Rightarrow> actor) 
+{y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}"
+
+thm Actor_type_def
+
+lemma Actor_td_Abs_inverse: 
+"(y\<in> {y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}) \<Longrightarrow> 
+(Rep :: actor \<Rightarrow> identity option)((Abs :: identity option \<Rightarrow> actor) y) = y"
+  apply (insert Actor_type_def)
+  apply (drule_tac x = Rep in meta_spec)
+  apply (drule_tac x = Abs in meta_spec)
+  by (erule type_definition.Abs_inverse, assumption)
+
+axiomatization where Actor_redef: "Actor = (Abs :: identity option \<Rightarrow> actor)o Actor_Rep"
+
+lemma UasI_Actor_redef: 
+"((Abs :: identity option \<Rightarrow> actor)o Actor_Rep) ''Eve'' = ((Abs :: identity option \<Rightarrow> actor)o Actor_Rep) ''Charly'' \<and>
+    (\<forall>(x::char list) y::char list. x \<noteq> ''Eve'' \<and> y \<noteq> ''Eve'' \<and> 
+  ((Abs :: identity option \<Rightarrow> actor)o Actor_Rep) x = ((Abs :: identity option \<Rightarrow> actor)o Actor_Rep) y 
+   \<longrightarrow> x = y)"
+  sorry
+
+lemma UasI_Actor: "UasI ''Eve'' ''Charly''"
+  apply (unfold UasI_def, insert Actor_redef)
+  apply (drule meta_spec)
+  apply (erule ssubst)
+by (rule UasI_Actor_redef)
 
 interpretation airplane airplane_actors airplane_locations cockpit door cabin global_policy 
                ex_creds ex_locs ex_locs' ex_graph aid_graph aid_graph0 agid_graph 
@@ -1594,7 +1641,7 @@ interpretation airplane airplane_actors airplane_locations cockpit door cabin gl
 apply (rule airplane.intro)
    apply (simp add: tipping_point_def)
   apply (simp add: Insider_def UasI_def tipping_point_def atI_def)
-apply (insert UasIax, simp add: UasI_def)
+apply (insert UasI_Actor, simp add: UasI_def)
 apply (insert cockpit_foe_control', simp add: foe_control_def' cockpit_def')
                       apply (rule airplane_actors_def')
                       apply (simp add: airplane_locations_def')
