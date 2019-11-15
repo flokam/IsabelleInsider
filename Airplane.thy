@@ -1588,13 +1588,13 @@ Or go the recommended way of a post-hoc axiomatic redefinition of the
 abstract type actor by using axiomatization of the Locale type_definition:
 *)
 
-definition Actor_Rep :: "identity \<Rightarrow> identity option"
+definition Actor_Abs :: "identity \<Rightarrow> identity option"
   where 
-"Actor_Rep x \<equiv> (if x \<in> {''Eve'', ''Charly''} then None else Some x)"
+"Actor_Abs x \<equiv> (if x \<in> {''Eve'', ''Charly''} then None else Some x)"
 
-lemma UasI_ActorRep: "Actor_Rep ''Eve'' = Actor_Rep ''Charly'' \<and>
-    (\<forall>(x::char list) y::char list. x \<noteq> ''Eve'' \<and> y \<noteq> ''Eve'' \<and> Actor_Rep x = Actor_Rep y \<longrightarrow> x = y)"
-by (simp add: Actor_Rep_def)
+lemma UasI_ActorAbs: "Actor_Abs ''Eve'' = Actor_Abs ''Charly'' \<and>
+    (\<forall>(x::char list) y::char list. x \<noteq> ''Eve'' \<and> y \<noteq> ''Eve'' \<and> Actor_Abs x = Actor_Abs y \<longrightarrow> x = y)"
+by (simp add: Actor_Abs_def)
 
 (* impossible to axiomatize types as being equal
 axiomatization where actor_def: "(UNIV :: actor set) = (UNIV:: identity option set)"
@@ -1617,14 +1617,16 @@ lemma Actor_td_Abs_inverse:
   apply (drule_tac x = Abs in meta_spec)
   by (erule type_definition.Abs_inverse, assumption)
 
-axiomatization where Actor_redef: "Actor = (Abs :: identity option \<Rightarrow> actor)o Actor_Rep"
+axiomatization where Actor_redef: "Actor = (Abs :: identity option \<Rightarrow> actor)o Actor_Abs"
 
 lemma UasI_Actor_redef: 
-"((Abs :: identity option \<Rightarrow> actor)o Actor_Rep) ''Eve'' = ((Abs :: identity option \<Rightarrow> actor)o Actor_Rep) ''Charly'' \<and>
+"((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) ''Eve'' = ((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) ''Charly'' \<and>
     (\<forall>(x::char list) y::char list. x \<noteq> ''Eve'' \<and> y \<noteq> ''Eve'' \<and> 
-  ((Abs :: identity option \<Rightarrow> actor)o Actor_Rep) x = ((Abs :: identity option \<Rightarrow> actor)o Actor_Rep) y 
+  ((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) x = ((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) y 
    \<longrightarrow> x = y)"
+  apply (insert UasI_ActorAbs, simp)
   sorry
+(* "remote_vampire": The prover claims the conjecture is a theorem but provided an unparsable proof *)
 
 lemma UasI_Actor: "UasI ''Eve'' ''Charly''"
   apply (unfold UasI_def, insert Actor_redef)
