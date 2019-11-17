@@ -1573,19 +1573,24 @@ print_interps airplane
 axiomatization where
 cockpit_foe_control': "foe_control cockpit put"
 
-(* Unfortunately, we need axiomatization to add the missing semantics to the 
-  const Actor. Since Actor has been defined as a consts without defs one
-  would hope that it is feasible to add this at a later stage -- but alas no.
-  The alternative of using a Locale to replace the abstract type_decl actor
-  is not working properly since it necessitates introducing a type parameter
-  'actor into infrastructures which then makes it impossible to instantiate
-  them to the typeclass state in order to use CTL and Kripke and the generic
-  state transition 
-Either simply assume the needed property:
-axiomatization where UasIax: "UasI ''Eve'' ''Charly''"
-
-Or go the recommended way of a post-hoc axiomatic redefinition of the 
-abstract type actor by using axiomatization of the Locale type_definition:
+(* We furhtermore need axiomatization to add the missing semantics to the 
+  abstractly declared type actor and thereby be able to redefine consts Actor. 
+  Since the function Actor has also been defined as a consts :: identity \<Rightarrow> actor
+  as an abstract function without a definition, we now also now add its semantics
+  mimicking some of the concepts of the conservative type definition of HOL.
+  The alternative method of using a Locale to replace the abstract type_decl actor
+  in the AirInsider is a more elegnat method for representing and abstract 
+  type actor but it is not working properly for our framwework since it necessitates 
+  introducing a type parameter 'actor into infrastructures which then makes it 
+  impossible to instantiate them to the typeclass state in order to use CTL and 
+  Kripke and the generic state transition. 
+  Therefore, we go the former way of a post-hoc axiomatic redefinition of the 
+  abstract type actor by using axiomatization of the existing Locale "type_definition".
+  This is done in the following. It allows to abstractedly assume as an axiom
+  that there is a type definition for the abstract type actor. Adding a suitable
+  definition of a representation for this type then additionally enables to introduce
+  a definition for the function Actor (again using axiomatization to enforce the new
+  definition).
 *)
 
 definition Actor_Abs :: "identity \<Rightarrow> identity option"
@@ -1594,8 +1599,12 @@ definition Actor_Abs :: "identity \<Rightarrow> identity option"
 
 lemma UasI_ActorAbs: "Actor_Abs ''Eve'' = Actor_Abs ''Charly'' \<and>
     (\<forall>(x::char list) y::char list. x \<noteq> ''Eve'' \<and> y \<noteq> ''Eve'' \<and> Actor_Abs x = Actor_Abs y \<longrightarrow> x = y)"
-by (simp add: Actor_Abs_def)
+  by (simp add: Actor_Abs_def)
 
+lemma Actor_Abs_ran: "Actor_Abs x \<in> {y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}"
+  by (simp add: Actor_Abs_def)
+
+ 
 (* impossible to axiomatize types as being equal
 axiomatization where actor_def: "(UNIV :: actor set) = (UNIV:: identity option set)"
 *)
@@ -1607,7 +1616,20 @@ axiomatization where Actor_type_def:
 "type_definition (Rep :: actor \<Rightarrow> identity option)(Abs :: identity option \<Rightarrow> actor) 
 {y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}"
 
-thm Actor_type_def
+lemma Abs_inj_on: "\<And> Abs Rep:: actor \<Rightarrow> char list option. x \<in> {y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}  
+               \<Longrightarrow> y \<in> {y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}
+               \<Longrightarrow> (Abs :: char list option \<Rightarrow> actor) x = Abs y \<Longrightarrow> x = y"
+  apply (insert Actor_type_def)
+  apply (drule_tac x = Rep in meta_spec)
+  apply (drule_tac x = Abs in meta_spec)
+  apply (frule_tac x = "Abs x" and y = "Abs y" in type_definition.Rep_inject)
+  apply (subgoal_tac "(Rep (Abs x) = Rep (Abs y)) ")
+   prefer 2
+   apply simp
+  apply (subgoal_tac "Rep (Abs x) = x")
+   apply (subgoal_tac "Rep (Abs y) = y")
+    apply (erule subst, erule subst, assumption)
+  by (erule type_definition.Abs_inverse, assumption)+
 
 lemma Actor_td_Abs_inverse: 
 "(y\<in> {y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}) \<Longrightarrow> 
@@ -1619,14 +1641,26 @@ lemma Actor_td_Abs_inverse:
 
 axiomatization where Actor_redef: "Actor = (Abs :: identity option \<Rightarrow> actor)o Actor_Abs"
 
+(* need to show that Abs(Actor_Abs x) = Abs(Actor_Abs y) \<longrightarrow> Actor_Abs x = Actor_Abs y,
+i.e. injective Abs. Generally, Abs is not injective but injective_on the type predicate.
+So, need to show that for any x, Actor_Abs x is in the type predicate, then it would follow.
+What is the type predicate?
+{y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}*)
 lemma UasI_Actor_redef: 
-"((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) ''Eve'' = ((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) ''Charly'' \<and>
+"\<And> Abs Rep:: actor \<Rightarrow> char list option. 
+((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) ''Eve'' = ((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) ''Charly'' \<and>
     (\<forall>(x::char list) y::char list. x \<noteq> ''Eve'' \<and> y \<noteq> ''Eve'' \<and> 
   ((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) x = ((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) y 
    \<longrightarrow> x = y)"
   apply (insert UasI_ActorAbs, simp)
-  sorry
-(* "remote_vampire": The prover claims the conjecture is a theorem but provided an unparsable proof *)
+  apply clarify
+  apply (drule_tac x = x in spec)
+  apply (drule_tac x = y in spec)
+  apply (subgoal_tac "Actor_Abs x = Actor_Abs y", simp)
+  apply (rule Abs_inj_on)
+    apply (rule Actor_Abs_ran)
+   apply (rule Actor_Abs_ran)
+by assumption
 
 lemma UasI_Actor: "UasI ''Eve'' ''Charly''"
   apply (unfold UasI_def, insert Actor_redef)
