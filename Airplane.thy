@@ -1448,6 +1448,10 @@ qed
 
 end
 
+
+(* In the following we construct an instance of the locale airplane and proof
+   that it is an interpretation. This serves the validation.
+*)
 definition airplane_actors_def': "airplane_actors \<equiv> {''Bob'', ''Charly'', ''Alice''}"
 definition airplane_locations_def': 
 "airplane_locations \<equiv> {Location 0, Location 1, Location 2}"
