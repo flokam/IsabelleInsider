@@ -1573,13 +1573,20 @@ print_interps airplane
 axiomatization where
 cockpit_foe_control': "foe_control cockpit put"
 
-(* We furhtermore need axiomatization to add the missing semantics to the 
-  abstractly declared type actor and thereby be able to redefine consts Actor. 
+(* 
+   (The following addresses the issue of redefining an abstract type.
+   We experimented with suggestion given here: Makarius Wenzel,
+   Re: [isabelle] typedecl versus explicit type parameters,
+   Isabelle users mailing list, 2009,
+   https://lists.cam.ac.uk/pipermail/cl-isabelle-users/2009-July/msg00111.html.  
+   )
+  We furthermore need axiomatization to add the missing semantics to the
+  abstractly declared type actor and thereby be able to redefine consts Actor.
   Since the function Actor has also been defined as a consts :: identity \<Rightarrow> actor
   as an abstract function without a definition, we now also now add its semantics
   mimicking some of the concepts of the conservative type definition of HOL.
   The alternative method of using a Locale to replace the abstract type_decl actor
-  in the AirInsider is a more elegnat method for representing and abstract 
+  in the AirInsider is a more elegant method for representing and abstract 
   type actor but it is not working properly for our framwework since it necessitates 
   introducing a type parameter 'actor into infrastructures which then makes it 
   impossible to instantiate them to the typeclass state in order to use CTL and 
@@ -1604,12 +1611,7 @@ lemma UasI_ActorAbs: "Actor_Abs ''Eve'' = Actor_Abs ''Charly'' \<and>
 lemma Actor_Abs_ran: "Actor_Abs x \<in> {y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}"
   by (simp add: Actor_Abs_def)
 
- 
-(* impossible to axiomatize types as being equal
-axiomatization where actor_def: "(UNIV :: actor set) = (UNIV:: identity option set)"
-*)
-
-(* With this kind of axiomatization, we can simulate the abstract type actor
+(* With the following axiomatization, we can simulate the abstract type actor
    and postulate some unspecified Abs and Rep functions between it and the
    simulated identity option subtype. *)
 axiomatization where Actor_type_def: 
@@ -1619,26 +1621,19 @@ axiomatization where Actor_type_def:
 lemma Abs_inj_on: "\<And> Abs Rep:: actor \<Rightarrow> char list option. x \<in> {y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}  
                \<Longrightarrow> y \<in> {y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}
                \<Longrightarrow> (Abs :: char list option \<Rightarrow> actor) x = Abs y \<Longrightarrow> x = y"
-  apply (insert Actor_type_def)
-  apply (drule_tac x = Rep in meta_spec)
-  apply (drule_tac x = Abs in meta_spec)
-  apply (frule_tac x = "Abs x" and y = "Abs y" in type_definition.Rep_inject)
-  apply (subgoal_tac "(Rep (Abs x) = Rep (Abs y)) ")
-   prefer 2
-   apply simp
-  apply (subgoal_tac "Rep (Abs x) = x")
-   apply (subgoal_tac "Rep (Abs y) = y")
-    apply (erule subst, erule subst, assumption)
-  by (erule type_definition.Abs_inverse, assumption)+
+by (insert Actor_type_def, drule_tac x = Rep in meta_spec, drule_tac x = Abs in meta_spec,
+   frule_tac x = "Abs x" and y = "Abs y" in type_definition.Rep_inject,
+   subgoal_tac "(Rep (Abs x) = Rep (Abs y))", subgoal_tac "Rep (Abs x) = x",
+   subgoal_tac "Rep (Abs y) = y", erule subst, erule subst, assumption,
+   (erule type_definition.Abs_inverse, assumption)+, simp)
 
 lemma Actor_td_Abs_inverse: 
 "(y\<in> {y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}) \<Longrightarrow> 
 (Rep :: actor \<Rightarrow> identity option)((Abs :: identity option \<Rightarrow> actor) y) = y"
-  apply (insert Actor_type_def)
-  apply (drule_tac x = Rep in meta_spec)
-  apply (drule_tac x = Abs in meta_spec)
-  by (erule type_definition.Abs_inverse, assumption)
+by (insert Actor_type_def, drule_tac x = Rep in meta_spec, drule_tac x = Abs in meta_spec,
+  erule type_definition.Abs_inverse, assumption)
 
+(* Now, we can redefine the function Actor using a second axiomatization *)
 axiomatization where Actor_redef: "Actor = (Abs :: identity option \<Rightarrow> actor)o Actor_Abs"
 
 (* need to show that Abs(Actor_Abs x) = Abs(Actor_Abs y) \<longrightarrow> Actor_Abs x = Actor_Abs y,
@@ -1652,21 +1647,13 @@ lemma UasI_Actor_redef:
     (\<forall>(x::char list) y::char list. x \<noteq> ''Eve'' \<and> y \<noteq> ''Eve'' \<and> 
   ((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) x = ((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) y 
    \<longrightarrow> x = y)"
-  apply (insert UasI_ActorAbs, simp)
-  apply clarify
-  apply (drule_tac x = x in spec)
-  apply (drule_tac x = y in spec)
-  apply (subgoal_tac "Actor_Abs x = Actor_Abs y", simp)
-  apply (rule Abs_inj_on)
-    apply (rule Actor_Abs_ran)
-   apply (rule Actor_Abs_ran)
-by assumption
+by (insert UasI_ActorAbs, simp, clarify, drule_tac x = x in spec, drule_tac x = y in spec,
+    subgoal_tac "Actor_Abs x = Actor_Abs y", simp, rule Abs_inj_on, rule Actor_Abs_ran, rule Actor_Abs_ran)
 
+(* Finally all of this allows us to show the last assumption contained in the
+   Insider Locale assumption needed for the interpretation of airplane.*)
 lemma UasI_Actor: "UasI ''Eve'' ''Charly''"
-  apply (unfold UasI_def, insert Actor_redef)
-  apply (drule meta_spec)
-  apply (erule ssubst)
-by (rule UasI_Actor_redef)
+ by (unfold UasI_def, insert Actor_redef, drule meta_spec, erule ssubst, rule UasI_Actor_redef)
 
 interpretation airplane airplane_actors airplane_locations cockpit door cabin global_policy 
                ex_creds ex_locs ex_locs' ex_graph aid_graph aid_graph0 agid_graph 
@@ -1674,40 +1661,18 @@ interpretation airplane airplane_actors airplane_locations cockpit door cabin gl
                Airplane_getting_in_danger0 Airplane_getting_in_danger Air_states Air_Kripke
                Airplane_not_in_danger Airplane_not_in_danger_init Air_tp_states 
                Air_tp_Kripke Safety Security foe_control astate
-apply (rule airplane.intro)
-   apply (simp add: tipping_point_def)
-  apply (simp add: Insider_def UasI_def tipping_point_def atI_def)
-apply (insert UasI_Actor, simp add: UasI_def)
-apply (insert cockpit_foe_control', simp add: foe_control_def' cockpit_def')
-                      apply (rule airplane_actors_def')
-                      apply (simp add: airplane_locations_def')
-                      apply (simp add: cockpit_def')
-                      apply (simp add: door_def')
-                      apply (simp add: cabin_def')
-                      apply (simp add: global_policy_def')
-                      apply (simp add: ex_creds_def')
-                      apply (simp add: ex_locs_def')
-                      apply (simp add: ex_locs'_def')
-                     apply (simp add: ex_graph_def')
-                    apply (simp add: aid_graph_def')
-                   apply (simp add: aid_graph0_def')
-                  apply (simp add: agid_graph_def')
-                 apply (simp add: local_policies_def')
-                apply (simp add: local_policies_four_eyes_def')
-               apply (simp add: Airplane_scenario_def')
-              apply (simp add: Airplane_in_danger_def')
-             apply (simp add: Airplane_getting_in_danger0_def')
-            apply (simp add: Airplane_getting_in_danger_def')
-           apply (simp add: Air_states_def')
-          apply (simp add: Air_Kripke_def')
-         apply (simp add: Airplane_not_in_danger_def')
-        apply (simp add: Airplane_not_in_danger_init_def')
-       apply (simp add: Air_tp_states_def')
-      apply (simp add: Air_tp_Kripke_def')
-     apply (simp add: Safety_def')
-    apply (simp add: Security_def')
-    apply (simp add: foe_control_def')
-by (simp add: astate_def')
+ by (rule airplane.intro, simp add: tipping_point_def,
+     simp add: Insider_def UasI_def tipping_point_def atI_def, 
+     insert UasI_Actor, simp add: UasI_def,
+     insert cockpit_foe_control', simp add: foe_control_def' cockpit_def',
+     rule airplane_actors_def',
+    (simp add: airplane_locations_def' cockpit_def' door_def' cabin_def' global_policy_def'
+               ex_creds_def' ex_locs_def' ex_locs'_def' ex_graph_def' aid_graph_def' aid_graph0_def' 
+               agid_graph_def' local_policies_def' local_policies_four_eyes_def' Airplane_scenario_def'
+               Airplane_in_danger_def' Airplane_getting_in_danger0_def' Airplane_getting_in_danger_def'
+               Air_states_def'  Air_Kripke_def' Airplane_not_in_danger_def' Airplane_not_in_danger_init_def'
+               Air_tp_states_def' Air_tp_Kripke_def' Safety_def' Security_def' 
+               foe_control_def' astate_def')+)
 
 end
     
