@@ -1,9 +1,7 @@
+section \<open>Airplane case study\<close>
 theory Airplane
 imports AirInsider
 begin
-
-declare [[show_types]]
- 
 datatype doorstate = locked | norm | unlocked
 datatype position = air | airport | ground
 
@@ -16,7 +14,6 @@ fixes airplane_locations :: "location set"
 defines airplane_locations_def: 
 "airplane_locations \<equiv> {Location 0, Location 1, Location 2}"
 (* 0 cabin, 1 door, 2 cockpit *)
-
 fixes cockpit :: "location"
 defines cockpit_def: "cockpit \<equiv> Location 2" 
 fixes door :: "location"
@@ -194,7 +191,7 @@ next show
   qed
 qed
 
-(* show Safety for Airplane_scenario*)
+text\<open>show Safety for Airplane\_scenario\<close> 
 lemma Safety: "Safety Airplane_scenario (''Alice'')"
 proof -
   show "Safety Airplane_scenario ''Alice''"
@@ -204,7 +201,7 @@ proof -
         rule conjI, simp add: has_def credentials_def, simp add: isin_def credentials_def)
 qed
 
-(* show Security for Airplane_scenario *)
+text \<open>show Security for Airplane\_scenario\<close>
 lemma inj_lem: "\<lbrakk> inj f; x \<noteq> y \<rbrakk> \<Longrightarrow> f x \<noteq> f y"
 by (simp add: inj_eq)
 
@@ -234,16 +231,16 @@ by (insert locl_lemma2a, blast)
 lemma Security: "Security Airplane_scenario s"
   by (simp add: Airplane_scenario_def Security_def enables_def local_policies_def ex_locs_def locl_lemma3)
  
-(* show that pilot can't get into cockpit if outside and locked = Airplane_in_danger *)
+text \<open>show that pilot can't get into cockpit if outside and locked = Airplane\_in\_danger\<close>
 lemma Security_problem: "Security Airplane_scenario ''Bob''"
 by (rule Security)
 
-(* show that pilot can get out of cockpit *)
+text \<open>show that pilot can get out of cockpit\<close>
 lemma pilot_can_leave_cockpit: "(enables Airplane_scenario cabin (Actor ''Bob'') move)"
   by (simp add: Airplane_scenario_def Security_def ex_creds_def ex_graph_def enables_def 
                 local_policies_def ex_locs_def, simp add: cockpit_def cabin_def door_def)
 
-(* show that in Airplane_in_danger copilot can still do put = put position to ground *)
+text \<open>show that in Airplane\_in\_danger copilot can still do put = put position to ground\<close>
 lemma ex_inv4: "\<not>global_policy Airplane_in_danger (''Eve'')"
 proof (simp add: Airplane_in_danger_def global_policy_def, rule conjI)
   show "''Eve'' \<notin> airplane_actors" by (simp add: airplane_actors_def)
@@ -277,8 +274,8 @@ proof (simp add: Airplane_in_danger_def Security_def enables_def local_policies_
 by (simp add: aid_graph_def isin_def ex_locs'_def)
 qed
 
-(* show that with the four eyes rule in Airplane_not_in_danger Eve cannot 
-   crash plane, i.e. cannot put position to ground *)
+text \<open>show that with the four eyes rule in Airplane\_not\_in\_danger Eve cannot 
+   crash plane, i.e. cannot put position to ground\<close>
 lemma ex_inv5: "a \<in> airplane_actors \<longrightarrow> global_policy Airplane_not_in_danger a"
 by (simp add: Airplane_not_in_danger_def global_policy_def)
 
@@ -384,7 +381,7 @@ next show "Airplane_scenario \<in> EF {x::infrastructure. \<not> global_policy x
      rule step2, rule CollectI, rule ex_inv4)
 qed 
     
-(* Invariant: actors cannot be at two places at the same time*)  
+text \<open>Invariant: actors cannot be at two places at the same time\<close>
 lemma  actors_unique_loc_base: 
   assumes "I \<rightarrow>\<^sub>n I'"
       and "(\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
@@ -772,11 +769,10 @@ lemma actors_unique_loc_aid_step:
          (\<forall> l. nodup a (agra (graphI I) l))"  
   by (erule actors_unique_loc_step, rule actors_unique_loc_aid_base)
     
-(* Using the state transition, Kripke structure and CTL, we can now
+text \<open>Using the state transition, Kripke structure and CTL, we can now
    also express (and prove!) unreachability properties which enable to 
    formally verify security properties for specific policies, like two-person
-   rule. *)
-
+   rule.\<close>
 lemma Anid_airplane_actors: "actors_graph (graphI Airplane_not_in_danger_init) = airplane_actors"
 proof (simp add: Airplane_not_in_danger_init_def ex_graph_def actors_graph_def nodes_def 
                  airplane_actors_def, rule equalityI)
@@ -851,8 +847,7 @@ lemma Apnid_tsp_test_gen: "~(enables Airplane_not_in_danger_init l (Actor a) get
 lemma test_graph_atI: "''Bob'' @\<^bsub>graphI Airplane_not_in_danger_init\<^esub> cockpit" 
   by (simp add: Airplane_not_in_danger_init_def ex_graph_def atI_def)  
 
-
-(* Invariant: number of staff in cockpit never below 2 *)
+text \<open>Invariant: number of staff in cockpit never below 2\<close>
 lemma two_person_inv: 
   fixes z z' 
   assumes "(2::nat) \<le> length (agra (graphI z) cockpit)"
@@ -936,12 +931,12 @@ next show "\<And>(y::infrastructure) z::infrastructure.
         rule init_state_policy, assumption+, simp)
 qed
 
-(* The version of two_person_inv above we need, uses cardinality of lists of 
+text \<open>The version of two\_person\_inv above we need, uses cardinality of lists of 
    actors rather than length of lists. Therefore first some equivalences
-   and then a restatement of two_person_inv in terms of sets *)   
-(* proof idea: show since there are no duplicates in the list
+   and then a restatement of two\_person\_inv in terms of sets\<close>
+text \<open>proof idea: show since there are no duplicates in the list
     agra (graphI z) cockpit therefore then 
-         card(set(agra (graphI z))) = length(agra (graphI z)) *)
+         card(set(agra (graphI z))) = length(agra (graphI z))\<close>
 lemma nodup_card_insert: 
        "a \<notin> set l \<longrightarrow> card (insert a (set l)) = Suc (card (set l))"      
 by auto
@@ -1349,7 +1344,7 @@ lemma Eve_not_in_cockpit: "(Airplane_not_in_danger_init, I)
  by (drule airplane_actors_inv, simp add: airplane_actors_def,
      drule_tac x = x in bspec, assumption, force)
     
-(* 2 person invariant implies that there is always some x in cockpit x \<noteq> Eve *)  
+text \<open>2 person invariant implies that there is always some x in cockpit x not equal Eve\<close>
 lemma tp_imp_control:
   assumes "(Airplane_not_in_danger_init,I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*"
   shows "(? x :: identity.  x @\<^bsub>graphI I\<^esub> cockpit \<and> Actor x \<noteq> Actor ''Eve'')"
@@ -1378,7 +1373,6 @@ proof -
     qed
   show ?thesis  by (insert assms a0 a6, simp add: atI_def, blast)
 qed
-
 
 lemma Fend_2:    "(Airplane_not_in_danger_init,I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
          \<not> enables I cockpit (Actor ''Eve'') put"
@@ -1449,9 +1443,8 @@ qed
 end
 
 
-(* In the following we construct an instance of the locale airplane and proof
-   that it is an interpretation. This serves the validation.
-*)
+text \<open>In the following we construct an instance of the locale airplane and proof
+   that it is an interpretation. This serves the validation.\<close> 
 definition airplane_actors_def': "airplane_actors \<equiv> {''Bob'', ''Charly'', ''Alice''}"
 definition airplane_locations_def': 
 "airplane_locations \<equiv> {Location 0, Location 1, Location 2}"
@@ -1532,8 +1525,8 @@ definition Airplane_scenario_def':
 definition Airplane_in_danger_def':
 "Airplane_in_danger \<equiv> Infrastructure aid_graph local_policies"
 
-(* Intermediate step where pilot left cockpit but door still in
-   norm position *)
+text \<open>Intermediate step where pilot left cockpit but door still in
+   norm position\<close>
 definition Airplane_getting_in_danger0_def':
 "Airplane_getting_in_danger0 \<equiv> Infrastructure aid_graph0 local_policies"
 
@@ -1573,12 +1566,11 @@ definition astate_def': "astate x \<equiv>
 
 print_interps airplane
 
-(* The additional assumption identified in the case study needs to be given as an axiom *)
+text \<open>The additional assumption identified in the case study needs to be given as an axiom\<close>
 axiomatization where
 cockpit_foe_control': "foe_control cockpit put"
 
-(* 
-   (The following addresses the issue of redefining an abstract type.
+text \<open>(The following addresses the issue of redefining an abstract type.
    We experimented with suggestion given here: Makarius Wenzel,
    Re: [isabelle] typedecl versus explicit type parameters,
    Isabelle users mailing list, 2009,
@@ -1586,24 +1578,23 @@ cockpit_foe_control': "foe_control cockpit put"
    )
   We furthermore need axiomatization to add the missing semantics to the
   abstractly declared type actor and thereby be able to redefine consts Actor.
-  Since the function Actor has also been defined as a consts :: identity \<Rightarrow> actor
+  Since the function Actor has also been defined as a consts :: identity => actor
   as an abstract function without a definition, we now also now add its semantics
   mimicking some of the concepts of the conservative type definition of HOL.
-  The alternative method of using a Locale to replace the abstract type_decl actor
+  The alternative method of using a Locale to replace the abstract type\_decl actor
   in the AirInsider is a more elegant method for representing and abstract 
   type actor but it is not working properly for our framwework since it necessitates 
   introducing a type parameter 'actor into infrastructures which then makes it 
   impossible to instantiate them to the typeclass state in order to use CTL and 
   Kripke and the generic state transition. 
   Therefore, we go the former way of a post-hoc axiomatic redefinition of the 
-  abstract type actor by using axiomatization of the existing Locale "type_definition".
+  abstract type actor by using axiomatization of the existing Locale "type\_definition".
   This is done in the following. It allows to abstractedly assume as an axiom
   that there is a type definition for the abstract type actor. Adding a suitable
   definition of a representation for this type then additionally enables to introduce
   a definition for the function Actor (again using axiomatization to enforce the new
-  definition).
-*)
-
+  definition).\<close>
+   
 definition Actor_Abs :: "identity \<Rightarrow> identity option"
   where 
 "Actor_Abs x \<equiv> (if x \<in> {''Eve'', ''Charly''} then None else Some x)"
@@ -1615,9 +1606,9 @@ lemma UasI_ActorAbs: "Actor_Abs ''Eve'' = Actor_Abs ''Charly'' \<and>
 lemma Actor_Abs_ran: "Actor_Abs x \<in> {y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}"
   by (simp add: Actor_Abs_def)
 
-(* With the following axiomatization, we can simulate the abstract type actor
+text \<open> With the following axiomatization, we can simulate the abstract type actor
    and postulate some unspecified Abs and Rep functions between it and the
-   simulated identity option subtype. *)
+   simulated identity option subtype.\<close>
 axiomatization where Actor_type_def: 
 "type_definition (Rep :: actor \<Rightarrow> identity option)(Abs :: identity option \<Rightarrow> actor) 
 {y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}"
@@ -1637,14 +1628,16 @@ lemma Actor_td_Abs_inverse:
 by (insert Actor_type_def, drule_tac x = Rep in meta_spec, drule_tac x = Abs in meta_spec,
   erule type_definition.Abs_inverse, assumption)
 
-(* Now, we can redefine the function Actor using a second axiomatization *)
+text \<open>Now, we can redefine the function Actor using a second axiomatization\<close>
 axiomatization where Actor_redef: "Actor = (Abs :: identity option \<Rightarrow> actor)o Actor_Abs"
 
-(* need to show that Abs(Actor_Abs x) = Abs(Actor_Abs y) \<longrightarrow> Actor_Abs x = Actor_Abs y,
-i.e. injective Abs. Generally, Abs is not injective but injective_on the type predicate.
-So, need to show that for any x, Actor_Abs x is in the type predicate, then it would follow.
+text \<open>need to show that 
+@{term "Abs(Actor_Abs x) = Abs(Actor_Abs y) \<longrightarrow> Actor_Abs x = Actor_Abs y"},
+i.e. @{text "injective Abs"}. 
+Generally, Abs is not injective but @{text "injective_on"} the type predicate.
+So, need to show that for any x, @{text "Actor_Abs x"} is in the type predicate, then it would follow.
 What is the type predicate?
-{y :: identity option. y \<in> Some ` {x :: identity. x \<notin> {''Eve'', ''Charly''}}| y = None}*)
+@{term "{y :: identity option. y \<in> Some`{x :: identity. x \<notin> {''Eve'', ''Charly''}} | y = None}"}\<close>
 lemma UasI_Actor_redef: 
 "\<And> Abs Rep:: actor \<Rightarrow> char list option. 
 ((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) ''Eve'' = ((Abs :: identity option \<Rightarrow> actor)o Actor_Abs) ''Charly'' \<and>
@@ -1654,8 +1647,8 @@ lemma UasI_Actor_redef:
 by (insert UasI_ActorAbs, simp, clarify, drule_tac x = x in spec, drule_tac x = y in spec,
     subgoal_tac "Actor_Abs x = Actor_Abs y", simp, rule Abs_inj_on, rule Actor_Abs_ran, rule Actor_Abs_ran)
 
-(* Finally all of this allows us to show the last assumption contained in the
-   Insider Locale assumption needed for the interpretation of airplane.*)
+text \<open>Finally all of this allows us to show the last assumption contained in the
+   Insider Locale assumption needed for the interpretation of airplane.\<close>
 lemma UasI_Actor: "UasI ''Eve'' ''Charly''"
  by (unfold UasI_def, insert Actor_redef, drule meta_spec, erule ssubst, rule UasI_Actor_redef)
 

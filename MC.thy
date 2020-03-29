@@ -1,7 +1,8 @@
-theory MC 
+section "Fixpoint lemmas to support the definition of Kripke structures and CTL"
+
+theory MC
 imports Main
 begin
-declare [[show_types]]
 
 thm monotone_def
 definition monotone :: "('a set \<Rightarrow> 'a set) \<Rightarrow> bool"
@@ -86,12 +87,13 @@ lemma no_infinite_subset_chain:
     and    "monotone (\<tau> :: ('a set \<Rightarrow> 'a set))"
     and    "\<forall>i :: nat. ((\<tau> :: 'a set \<Rightarrow> 'a set) ^ i) {} \<subset> (\<tau> ^ i + (1 :: nat)) ({} :: 'a set)" 
   shows   "False"
-(* idea: Since UNIV is finite, we have from ex_card that there is
-    an n with card UNIV = n. Now, use infchain_outruns_all to show as 
+text \<open>idea: Since @{term "UNIV"} is finite, we have from ex\_card that there is
+    an n with @{term "card UNIV = n"}. Now, use infchain\_outruns\_all to show as 
     contradiction point that
-    \<exists>i\<Colon>nat. card UNIV < card ((\<tau> ^ i) {}). Since all sets
-    are subsets of UNIV, we also have card ((\<tau> ^ i) {}) \<le> card UNIV:
-    Contradiction!, i.e. proof of False  *)
+    @{term "\<exists> i :: nat. card UNIV < card ((\<tau> ^ i) {})"}. 
+    Since all sets are subsets of @{term "UNIV"}, we also have 
+    @{term "card ((\<tau> ^ i) {}) \<le> card UNIV"}:
+    Contradiction!, i.e. proof of False  \<close>
 proof -
   have a: "\<forall> (j :: nat). (\<exists> (i :: nat). (j :: nat) < card((\<tau> ^ i)({} :: 'a set)))" using assms
     apply (erule_tac \<tau> = \<tau> in infchain_outruns_all)
@@ -119,14 +121,19 @@ lemma finite_fixp:
   assumes "finite(UNIV :: 'a set)" 
       and "monotone (\<tau> :: ('a set \<Rightarrow> 'a set))"
     shows "\<exists> i. (\<tau> ^ i) ({}) = (\<tau> ^(i + 1))({})"
-(* idea: 
-with predtrans_empty we know \<forall> i. (\<tau> ^ i) ({}) \<subseteq> (\<tau> ^(i + 1))({}) (1).
-If we can additionally show \<exists> i.  (\<tau> ^ i) ({}) \<supseteq> (\<tau> ^(i + 1))({}) (2),
-we can get the goal together with equalityI (\<subseteq> + \<supseteq> \<longrightarrow> =). To prove
-(1) we observe that (\<tau> ^ i) ({}) \<supseteq> (\<tau> ^(i + 1))({}) can be inferred
-from \<not> ( (\<tau> ^ i) ({}) \<subset> (\<tau> ^(i + 1))({})) and (1).
-Finally, the latter is solved directly by no_infinite_subset_chain.
- *)
+text \<open>idea: 
+with @{text predtrans_empty} we know 
+@{term "\<forall> i. (\<tau> ^ i){} \<subseteq> (\<tau> ^(i + 1))({})"} (1).
+If we can additionally show 
+@{term "\<exists> i.  (\<tau> ^ i)({}) \<supseteq> (\<tau> ^(i + 1))({})"} (2),
+we can get the goal together with equalityI 
+@{text "\<subseteq> + \<supseteq> \<longrightarrow> ="}. 
+To prove (1) we observe that 
+@{term "(\<tau> ^ i)({}) \<supseteq> (\<tau> ^(i + 1))({})"} 
+can be inferred from 
+@{term "\<not>((\<tau> ^ i)({}) \<subseteq> (\<tau> ^(i + 1))({}))"} 
+and (1).
+Finally, the latter is solved directly by no\_infinite\_subset\_chain.\<close>
 proof -
   have a: "\<forall>i::nat. (\<tau> ^ i) ({}:: 'a set) \<subseteq> (\<tau> ^ i + (1::nat)) {}" 
     thm predtrans_empty
@@ -299,8 +306,8 @@ proof -
    by (rule exI) 
 qed
 
-(* These next two are produced as duals from the corresponding
-   theorems in HOL/ZF/Nat.thy. Why are they not in the HOL/Library? *)
+text \<open>These next two are produced as duals from the corresponding
+   theorems in HOL/ZF/Nat.thy. Would make sense to have them in the HOL/Library\<close>
 lemma Kleene_iter_gpfp:
 assumes "mono f" and "p \<le> f p" shows "p \<le> (f^^k) (top::'a::order_top)"
 proof(induction k)
@@ -357,7 +364,7 @@ proof -
 qed
 
 
-(* Definitions of the generic type of state with state transition and CTL Operators*)
+text "Definitions of the generic type of state with state transition and CTL Operators"
 class state = 
   fixes state_transition :: "['a :: type, 'a] \<Rightarrow> bool"  ("(_ \<rightarrow>\<^sub>i _)" 50)
     
@@ -373,7 +380,7 @@ definition EU where "EU f1 f2 \<equiv> lfp(\<lambda> Z. f2 \<union> (f1 \<inter>
 definition AR where "AR f1 f2 \<equiv> gfp(\<lambda> Z. f2 \<inter> (f1 \<union> AX Z))"
 definition ER where "ER f1 f2 \<equiv> gfp(\<lambda> Z. f2 \<inter> (f1 \<union> EX' Z))"
 
-(* Kripke and Modelchecking  -- FIXME:  typedef to incorporate init K \<subseteq> states K *)
+text  \<open>Kripke and Modelchecking \<close>
 datatype 'a kripke = 
   Kripke "'a set" "'a set"
 
@@ -386,7 +393,7 @@ definition check ("_ \<turnstile> _" 50)
 definition state_transition_refl ("(_ \<rightarrow>\<^sub>i* _)" 50)
 where "s \<rightarrow>\<^sub>i* s' \<equiv> ((s,s') \<in> {(x,y). state_transition x y}\<^sup>*)"
   
-(* Support lemmas *)
+text \<open> Support lemmas \<close>
 lemma EF_lem0: "(x \<in> EF f) = (x \<in> f \<union> EX' (lfp (\<lambda>Z :: ('a :: state) set. f \<union> EX' Z)))"
 proof -
   have "lfp (\<lambda>Z :: ('a :: state) set. f \<union> EX' Z) = 
@@ -616,7 +623,7 @@ proof (clarify)
     by (erule EF_step_star_rev)
 qed
   
-(* AG lemmas *)  
+text  \<open>AG lemmas\<close> 
 
 lemma AG_in_lem:   "x \<in> AG s \<Longrightarrow> x \<in> s"  
 proof (simp add: AG_def gfp_def)

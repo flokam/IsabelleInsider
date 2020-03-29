@@ -1,29 +1,31 @@
+section "Insider"
 theory AirInsider
 imports MC
 begin
 datatype action = get | move | eval |put
 
+text \<open>We use an abstract type declaration actor that can later be instantiated by a more 
+      concrete type.\<close>
 typedecl actor 
 consts Actor :: "string \<Rightarrow> actor" 
-(*
-context 
+text \<open>Alternatives to the type declaration do not work.
+
+context
   fixes Abs Rep actor
-  assumes td: "type_definition Abs Rep actor"
+  assumes td: "type\_definition Abs Rep actor"
 begin
 definition Actor where "Actor = Abs"
 ...doesn't work for replacing the actor typedecl because 
-in "type_definition" above the "actor" is a set not a type!
-so can't be used for our purposes. 
-*)
-(* Try locale instead for polymorphic type Actor 
+in "type\_definition" above the "actor" is a set not a type!
+So can't be used for our purposes. 
+Trying a locale instead for polymorphic type Actor 
 locale ACT =
-  fixes Actor :: "string \<Rightarrow> 'actor"
+  fixes Actor :: "string => 'actor"
 begin ...
 That is a nice idea and works quite far but clashes with the generic
-state_transition later (it's not possible to instantiate within a locale
+state\_transition later (it's not possible to instantiate within a locale
 and outside it we cannot instantiate "'a infrastructure" to state (clearly 
-an abstract thing as an instance is strange)
-*)
+an abstract thing as an instance is strange)\<close>
 
 type_synonym identity = string
 type_synonym  policy = "((actor \<Rightarrow> bool) * action set)"
@@ -77,7 +79,6 @@ definition role :: "[igraph, actor * string] \<Rightarrow> bool"
 definition isin :: "[igraph,location, string] \<Rightarrow> bool" 
   where "isin G l s \<equiv> s \<in> set(lgra G l)"
   
-
 datatype psy_states = happy | depressed | disgruntled | angry | stressed
 datatype motivations = financial | political | revenge | curious | competitive_advantage | power | peer_recognition
 
@@ -87,75 +88,46 @@ where "motivation  (Actor_state p m) =  m"
 primrec psy_state :: "actor_state \<Rightarrow> psy_states" 
 where "psy_state  (Actor_state p m) = p"
 
-
 definition tipping_point :: "actor_state \<Rightarrow> bool" where
   "tipping_point a \<equiv> ((motivation a \<noteq> {}) \<and> (happy \<noteq> psy_state a))"
 
-(* idea:: predicate to flag that an actor is isolated *)
-consts Isolation :: "[actor_state, (identity * identity) set ] \<Rightarrow> bool"
-
-
-(* use above to redefine infrastructure -- adapt policies in nodes
-   so that layed off workers cannot access any more *)
-definition lay_off :: "[infrastructure,actor set] \<Rightarrow> infrastructure"
-where "lay_off G A \<equiv> G"
-
-(* idea: social graph is derived from activities in infrastructure.
-   Since actors are nodes in the infrastructure graph, we need to 
-   have a second graph only on actors reflecting their interaction. *)
-consts social_graph :: "(identity * identity) set"
-(* This social graph is a parameter to the theory. It depends on
-   actual measured activities. We will use it to derive meta-theorems. *)
-
-(* UasI and UasI' are the central predicates allowing to specify Insiders.
+text \<open>UasI and UasI' are the central predicates allowing to specify Insiders.
 They define which identities can be mapped to the same role by the Actor function.
-For all other identities, Actor is defined as injective on those identities.
-*)
+For all other identities, Actor is defined as injective on those identities.\<close>
 definition UasI ::  "[identity, identity] \<Rightarrow> bool " 
 where "UasI a b \<equiv> (Actor a = Actor b) \<and> (\<forall> x y. x \<noteq> a \<and> y \<noteq> a \<and> Actor x = Actor y \<longrightarrow> x = y)"
 
 definition UasI' ::  "[actor => bool, identity, identity] \<Rightarrow> bool " 
 where "UasI' P a b \<equiv> P (Actor b) \<longrightarrow> P (Actor a)"
 
-(* astate assigns the state (motivations and mood) to an identity, see above
-for actor_state *)
-(* consts astate :: "identity \<Rightarrow> actor_state" *)
-
-(* Two versions of Insider predicate corresponding to UasI and UasI'.
+text \<open>Two versions of Insider predicate corresponding to UasI and UasI'.
 Under the assumption that the tipping point has been reached for a person a
 then a can impersonate all b (take all of b's "roles") where
-the b's are specified by a given set of identities *)
+the b's are specified by a given set of identities \<close>
 definition Insider :: "[identity, identity set, identity \<Rightarrow> actor_state] \<Rightarrow> bool" 
 where "Insider a C as \<equiv> (tipping_point (as a) \<longrightarrow> (\<forall> b\<in>C. UasI a b))"
-
 
 definition Insider' :: "[actor \<Rightarrow> bool, identity, identity set, identity \<Rightarrow> actor_state] \<Rightarrow> bool" 
 where "Insider' P a C as \<equiv> (tipping_point (as a) \<longrightarrow> (\<forall> b\<in>C. UasI' P a b \<and> inj_on Actor C))"
 
-(* restriction in new version for WRIT 16 *)
 definition atI :: "[identity, igraph, location] \<Rightarrow> bool" ("_ @\<^bsub>(_)\<^esub> _" 50)
 where "a @\<^bsub>G\<^esub> l \<equiv> a \<in> set(agra G l)"
 
-(* enables is the central definition of the behaviour as given by a policy
-that specifies what actions are allowed in a certain location for what actors *) 
+text \<open>enables is the central definition of the behaviour as given by a policy
+that specifies what actions are allowed in a certain location for what actors \<close>
 definition enables :: "[infrastructure, location, actor, action] \<Rightarrow> bool"
 where
 "enables I l a a' \<equiv>  (\<exists> (p,e) \<in> delta I (graphI I) l. a' \<in> e \<and> p a)"
 
-
-(* behaviour is the good behaviour, i.e. everything allowed by policy *)
+text \<open>behaviour is the good behaviour, i.e. everything allowed by policy \<close>
 definition behaviour :: "infrastructure \<Rightarrow> (location * actor * action)set"
 where "behaviour I \<equiv> {(t,a,a'). enables I t a a'}"
 
-(* somewhat to special I find now:
-definition misbehaviour :: "infrastructure \<Rightarrow> (location * identity * action)set"
-where "misbehaviour I \<equiv> {(t,a,a'). \<exists> b. UasI a b \<and> enables I t (Actor b) a'}"
-*)
-(* Most general: misbehaviour is the complement of behaviour *)
+text \<open>misbehaviour is the complement of behaviour \<close>
 definition misbehaviour :: "infrastructure \<Rightarrow> (location * actor * action)set"
   where "misbehaviour I \<equiv> -(behaviour I)"
 
-(* basic lemmas for enable *)
+text \<open>basic lemmas for enable\<close>
 lemma not_enableI: "(\<forall> (p,e) \<in> delta I (graphI I) l. (~(h : e) | (~(p(a))))) 
                      \<Longrightarrow> ~(enables I l a h)"
   by (simp add: enables_def, blast)
@@ -172,9 +144,8 @@ lemma not_enableE2: "\<lbrakk> ~(enables I l a t); (p,e) \<in> delta I (graphI I
                      t : e \<rbrakk> \<Longrightarrow> (~(p(a)))"
   by (simp add: enables_def, force)
 
-
-(* some constructions to deal with lists of actors in locations for 
-the semantics of action move *)
+text \<open>some constructions to deal with lists of actors in locations for 
+the semantics of action move\<close>
 primrec del :: "['a, 'a list] \<Rightarrow> 'a list"
 where 
 del_nil: "del a [] = []" |
@@ -196,8 +167,8 @@ where "move_graph_a n l l' g \<equiv> Lgraph (gra g)
                      ((agra g)(l := del n (agra g l)))(l' := (n # (agra g l')))
                      else (agra g))(cgra g)(lgra g)"
 
-(* State transition relation over infrastructures (the states) defining the 
-   semantics of actions in systems with humans and potentially insiders *)
+text \<open>State transition relation over infrastructures (the states) defining the 
+   semantics of actions in systems with humans and potentially insiders *)\<close>
 inductive state_transition_in :: "[infrastructure, infrastructure] \<Rightarrow> bool" ("(_ \<rightarrow>\<^sub>n _)" 50)
 where
   move: "\<lbrakk> G = graphI I; a @\<^bsub>G\<^esub> l; l \<in> nodes G; l' \<in> nodes G;
@@ -225,13 +196,12 @@ where
                     (delta I) \<rbrakk>
          \<Longrightarrow> I \<rightarrow>\<^sub>n I'"
   
-(* show that this infrastructure is a state as given in MC.thy *)
+text \<open>show that this infrastructure is a state as given in MC.thy\<close>
 instantiation "infrastructure" :: state
 begin
 
 definition 
    state_transition_infra_def: "(i \<rightarrow>\<^sub>i i') =  (i \<rightarrow>\<^sub>n (i' :: infrastructure))"
-
 
 instance
   by (rule MC.class.MC.state.of_class.intro)
@@ -241,12 +211,6 @@ where "s \<rightarrow>\<^sub>n* s' \<equiv> ((s,s') \<in> {(x,y). state_transiti
 
 lemma del_del[rule_format]: "n \<in> set (del a S) \<longrightarrow> n \<in> set S"
   by (induct_tac S, auto)
-
-(* Not true in the current formulation of del since copies are not 
-   deleted. But changing that causes extra complexity also elsewhere 
-   (see jonce) 
-lemma del_del_elim[rule_format]: "n \<in> set (S) \<longrightarrow> n \<notin> set (del n S)" *)
-    
     
 lemma del_dec[rule_format]: "a \<in> set S \<longrightarrow> length (del a S) < length S"  
   by (induct_tac S, auto)
@@ -285,8 +249,8 @@ lemma nodup_down_notin[rule_format]: "nodup a l \<longrightarrow> nodup a (del a
 lemma move_graph_eq: "move_graph_a a l l g = g"  
   by (simp add: move_graph_a_def, case_tac g, force)
 
-(* Some useful properties about the invariance of the nodes, the actors, and the policy 
-   with respect to the  state transition *)
+text \<open>Some useful properties about the invariance of the nodes, the actors, and the policy 
+   with respect to the  state transition\<close> 
 lemma delta_invariant: "\<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow>  delta(z) = delta(z')"    
   by (clarify, erule state_transition_in.cases, simp+)
 
@@ -401,7 +365,6 @@ next show "z = I \<Longrightarrow> z' = I' \<Longrightarrow> G = graphI I \<Long
       case_tac "ya = l'", simp+)
 qed
 qed
-
 
 lemma same_actors: "(I, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* 
               \<Longrightarrow> actors_graph(graphI I) = actors_graph(graphI y)"

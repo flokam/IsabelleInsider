@@ -1,24 +1,6 @@
-These are the sources for Isabelle 2019 for the Airplane Insider case study.
-They use the generic framework of Modelchecking MC.thy.
-On top of this is built
-AirInsider.thy: formalisation of the Insider theory
-Airplane.thy: the actual case study of the Insider attack on a passenger airplane
+This is a the Isabelle Insider framework based on Kripke 
+structures and modelchecking applied to the Airplane case study.
 
-To run this download Isabelle from https://isabelle.in.tum.de 
-(the tool is available for most platforms and has a very simple and
-quick installation process well documented).
-Then load the above three files into the Isabelle tool (using the file open
-menu option). They will automatically be rechecked and proofs and output
-can be rerun.
+- in a shell, for example bash-3.2 in my case, execute 
+  bash-3.2$ isabelle build -D .
 
-Additionally a more readable latex output can be generated from the Isabelle
-sources (for details and for pregenerated pdf's of the entire theory and proofs
-and a shorter outline, see the subdirectory latex contained here).
-
-Other applications and extension of the Insider framework can be found here in 
-the same github under IsabelleAT, for example (extension to Attack Trees and
-application to IoT and Quantum Computing). Another application to Cocaine Auction
-needs updating to isabelle 2019 but a version running with Isabelle 2016 can be 
-found here:
-Isabelle formalisation of cocaine auction protocol., 2016. Available from 
-https://www.dropbox.com/sh/uyku2q2ofb69cwm/AACYcxAnuI75YIOyqdz4wcoua?dl=0
