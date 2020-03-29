@@ -1,0 +1,91 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{isabelle,isabellesym}
+
+% further packages required for unusual symbols (see also
+% isabellesym.sty), use only when needed
+
+%\usepackage{amssymb}
+  %for \<leadsto>, \<box>, \<diamond>, \<sqsupset>, \<mho>, \<Join>,
+  %\<lhd>, \<lesssim>, \<greatersim>, \<lessapprox>, \<greaterapprox>,
+  %\<triangleq>, \<yen>, \<lozenge>
+
+%\usepackage{eurosym}
+  %for \<euro>
+
+%\usepackage[only,bigsqcap]{stmaryrd}
+  %for \<Sqinter>
+
+%\usepackage{eufrak}
+  %for \<AA> ... \<ZZ>, \<aa> ... \<zz> (also included in amssymb)
+
+%\usepackage{textcomp}
+  %for \<onequarter>, \<onehalf>, \<threequarters>, \<degree>, \<cent>,
+  %\<currency>
+
+% this should be the last package used
+\usepackage{pdfsetup}
+
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{it}
+
+% for uniform font size
+%\renewcommand{\isastyle}{\isastyleminor}
+
+
+\begin{document}
+
+\title{Applying the Isabelle Insider Framework to Airplane Security}
+\author{Florian Kamm\"uller and Manfred Kerber}
+
+\maketitle
+
+\begin{abstract}
+Avionics is one of the fields in which verification methods have been pioneered 
+and brought a new level of reliability to systems used in safety critical 
+environments. Tragedies, like the 2015 insider attack on a German airplane, 
+in which all 150 people on board died, show that safety and security crucially 
+depend not only on the well functioning of systems but also on the way how 
+humans interact with the systems. Policies are a way to describe how humans 
+should behave in their interactions with technical systems, formal reasoning 
+about such policies requires integrating the human factor into the 
+verification process.
+
+We model insider attacks on airplanes 
+using logical modelling and analysis of infrastructure models 
+and policies with actors to scrutinize security policies in the presence of 
+insiders \cite{kk:16}. 
+The Isabelle Insider framework framework has been first 
+presented in \cite{kp:16}. 
+Triggered by case studies, like the present one of airplane security, it 
+has been greatly extended now formalizing Kripke structures and the temporal 
+logic CTL to enable reasoning on dynamic system states. 
+Furthermore, we illustrate that Isabelle modelling and invariant 
+reasoning reveal subtle security assumptions: the formal development uses
+locales to model the assumptions on insider and their access credentials.
+Technically interesting is how the locale is interpreted in the presence
+of an abstract type declaration for actor in the Insider framework redefining 
+this type declaration at a later stage like a ``post-hoc type definition'' 
+as proposed in \cite{mw:09}.
+The case study and the application of the methododology are described in more 
+detail in the preprint \cite{kk:20}.
+\end{abstract}
+
+\tableofcontents
+
+% sane default for proof documents
+\parindent 0pt\parskip 0.5ex
+
+% generated text of all theories
+\input{session}
+
+% optional bibliography
+\bibliographystyle{abbrv}
+\bibliography{root}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
