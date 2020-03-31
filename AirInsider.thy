@@ -1,4 +1,4 @@
-section "Insider"
+section "Insider Framework"
 theory AirInsider
 imports MC
 begin
