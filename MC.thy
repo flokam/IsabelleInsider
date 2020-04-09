@@ -90,8 +90,8 @@ lemma no_infinite_subset_chain:
     and    "monotone (\<tau> :: ('a set \<Rightarrow> 'a set))"
     and    "\<forall>i :: nat. ((\<tau> :: 'a set \<Rightarrow> 'a set) ^ i) {} \<subset> (\<tau> ^ i + (1 :: nat)) ({} :: 'a set)" 
   shows   "False"
-text \<open>Proof idea: Since @{term "UNIV"} is finite, we have from ex\_card that there is
-    an n with @{term "card UNIV = n"}. Now, use infchain\_outruns\_all to show as 
+text \<open>Proof idea: since @{term "UNIV"} is finite, we have from @{text \<open>ex_card\<close>} that there is
+    an n with @{term "card UNIV = n"}. Now, use @{text \<open>infchain_outruns_all\<close>} to show as 
     contradiction point that
     @{term "\<exists> i :: nat. card UNIV < card ((\<tau> ^ i) {})"}. 
     Since all sets are subsets of @{term "UNIV"}, we also have 
@@ -126,9 +126,13 @@ lemma finite_fixp:
     shows "\<exists> i. (\<tau> ^ i) ({}) = (\<tau> ^(i + 1))({})"
 text \<open>Proof idea: 
 with @{text predtrans_empty} we know 
+
 @{term "\<forall> i. (\<tau> ^ i){} \<subseteq> (\<tau> ^(i + 1))({})"} (1).
+
 If we can additionally show 
+
 @{term "\<exists> i.  (\<tau> ^ i)({}) \<supseteq> (\<tau> ^(i + 1))({})"} (2),
+
 we can get the goal together with equalityI 
 @{text "\<subseteq> + \<supseteq> \<longrightarrow> ="}. 
 To prove (1) we observe that 
@@ -136,7 +140,7 @@ To prove (1) we observe that
 can be inferred from 
 @{term "\<not>((\<tau> ^ i)({}) \<subseteq> (\<tau> ^(i + 1))({}))"} 
 and (1).
-Finally, the latter is solved directly by no\_infinite\_subset\_chain.\<close>
+Finally, the latter is solved directly by @{text \<open>no_infinite_subset_chain\<close>}.\<close>
 proof -
   have a: "\<forall>i::nat. (\<tau> ^ i) ({}:: 'a set) \<subseteq> (\<tau> ^ i + (1::nat)) {}" 
     thm predtrans_empty
@@ -308,10 +312,10 @@ proof -
    by (rule exI) 
 qed
 
-text \<open>These next two are produced as duals from the corresponding
-   theorems in HOL/ZF/Nat.thy. Would make sense to have them in the HOL/Library.\<close>
+text \<open>These next two are repeated from the corresponding
+   theorems in HOL/ZF/Nat.thy for the sake of self-containedness of the exposition.\<close>
 lemma Kleene_iter_gpfp:
-assumes "mono f" and "p \<le> f p" shows "p \<le> (f^^k) (top::'a::order_top)"
+  assumes "mono f" and "p \<le> f p" shows "p \<le> (f^^k) (top::'a::order_top)"
 proof(induction k)
   case 0 show ?case by simp
 next
@@ -365,12 +369,11 @@ proof -
     by simp
 qed
 
-subsection \<open>Generic type of state with state transition and CTL Operators\<close>
+subsection \<open>Generic type of state with state transition and CTL operators\<close>
 text \<open>The system states and their transition relation are defined as a class called
- state containing an abstract constant state transition. It introduces the syntactic infix 
-notation @{text \<open>I \<rightarrow>\<^sub>i I'\<close>} to denote that system state I and I’ are in this relation over an arbitrary 
-(polymorphic) type 'a.\<close>
-
+ @{text \<open>state\<close>} containing an abstract constant@{text \<open>state_transition\<close>}. It introduces the 
+syntactic infix notation @{text \<open>I \<rightarrow>\<^sub>i I'\<close>} to denote that system state @{text \<open>I\<close>} and @{text \<open>I’\<close>} 
+are in this relation over an arbitrary (polymorphic) type @{text \<open>'a\<close>}.\<close>
 class state =
   fixes state_transition :: "['a :: type, 'a] \<Rightarrow> bool"  ("(_ \<rightarrow>\<^sub>i _)" 50)
 
@@ -385,9 +388,10 @@ EX and AX express that property f holds in some or all next states, respectively
 definition AX where "AX f \<equiv> {s. {f0. s \<rightarrow>\<^sub>i f0} \<subseteq> f}"
 definition EX' where "EX' f \<equiv> {s . \<exists> f0 \<in> f. s \<rightarrow>\<^sub>i f0 }"
 
-text \<open>The CTL formula AG f means that on all paths branching from a state s the formula f
-is always true (G stands for ‘globally’). It can be defined using the Tarski fixpoint theory 
-by applying the greatest fixpoint operator. In a similar way, the other CTL operators are defined.\<close>
+text \<open>The CTL formula @{text \<open>AG f\<close>} means that on all paths branching from a state @{text \<open>s\<close>} 
+the formula @{text \<open>f\<close>} is always true (@{text \<open>G\<close>} stands for ‘globally’). It can be defined 
+using the Tarski fixpoint theory by applying the greatest fixpoint operator. In a similar way, 
+the other CTL operators are defined.\<close>
 definition AF where "AF f \<equiv> lfp (\<lambda> Z. f \<union> AX Z)"
 definition EF where "EF f \<equiv> lfp (\<lambda> Z. f \<union> EX' Z)"
 definition AG where "AG f \<equiv> gfp (\<lambda> Z. f \<inter> AX Z)"
@@ -397,7 +401,7 @@ definition EU where "EU f1 f2 \<equiv> lfp(\<lambda> Z. f2 \<union> (f1 \<inter>
 definition AR where "AR f1 f2 \<equiv> gfp(\<lambda> Z. f2 \<inter> (f1 \<union> AX Z))"
 definition ER where "ER f1 f2 \<equiv> gfp(\<lambda> Z. f2 \<inter> (f1 \<union> EX' Z))"
 
-subsection  \<open>Kripke structure and Modelchecking \<close>
+subsection  \<open>Kripke structures and Modelchecking\<close>
 datatype 'a kripke = 
   Kripke "'a set" "'a set"
 
@@ -790,7 +794,7 @@ proof (rule notI, simp add: check_def)
   qed
 qed
 
-text \<open> \<close>
+text \<open>A simplified way of Modelchecking is given by the following lemma.\<close>
 lemma check2_def: "(Kripke S I \<turnstile> f) = (I \<subseteq> S \<inter> f)"
 proof (simp add: check_def)
   show "(I \<subseteq> {s::'a \<in> S. s \<in> f}) = (I \<subseteq> S \<and> I \<subseteq> f)" by blast
