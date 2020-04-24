@@ -1,5 +1,6 @@
 section "Kripke structures and CTL"
 
+
 text \<open>We apply Kripke structures and CTL to model state based systems and analyse properties under 
 dynamic state changes. Snapshots of systems are the states on which we define a state transition. 
 Temporal logic is then employed to express security and privacy properties.\<close>

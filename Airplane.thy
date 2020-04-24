@@ -573,7 +573,7 @@ two-person role to the model.\<close>
 subsection \<open>Introduce Two-Person Rule\<close>
 text \<open>To express the rule that two authorized
 personnel must be present at all times in the cockpit, we have define a second set of
-local policies @{text \<open>local_policies_four_eues\<close>} (see above). It realizes the two-person 
+local policies @{text \<open>local_policies_four_eyes\<close>} (see above). It realizes the two-person 
 constraint requesting that the number of actors at the location @{text \<open>cockpit\<close>} in the
 graph @{text \<open>G\<close>} given as input must be at least two to enable actors at
 the location to perform the action @{text \<open>put\<close>}.  Formally, we can express 
