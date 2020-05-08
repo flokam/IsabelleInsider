@@ -232,7 +232,7 @@ defines Security_def: "Security I a \<equiv>  (isin (graphI I) door ''locked'')
 fixes foe_control :: "[location, action] \<Rightarrow> bool"
 defines foe_control_def: "foe_control l c \<equiv>  
    (! I:: infrastructure. (? x :: identity. 
-        x @\<^bsub>graphI I\<^esub> l \<and> Actor x \<noteq> Actor ''Eve'')
+        (x @\<^bsub>graphI I\<^esub> l) \<and> Actor x \<noteq> Actor ''Eve'')
              \<longrightarrow> \<not>(enables I l (Actor ''Eve'') c))"
 
 fixes astate:: "identity \<Rightarrow> actor_state"
@@ -370,7 +370,6 @@ lemma Security: "Security Airplane_scenario s"
 lemma Security_problem: "Security Airplane_scenario ''Bob''"
 by (rule Security)
 
-
 text \<open>We show that pilot can get out of cockpit\<close>
 lemma pilot_can_leave_cockpit: "(enables Airplane_scenario cabin (Actor ''Bob'') move)"
   by (simp add: Airplane_scenario_def Security_def ex_creds_def ex_graph_def enables_def 
@@ -407,7 +406,7 @@ proof (simp add: Airplane_in_danger_def Security_def enables_def local_policies_
        ex_locs_def locl_lemma3a, rule impI)
   assume "has aid_graph (Actor ''Bob'', ''PIN'')"
   show "(\<forall>n::char list.
-        Actor n = Actor ''Bob'' \<longrightarrow> n @\<^bsub>aid_graph\<^esub> cabin \<longrightarrow> isin aid_graph door ''locked'')"
+        Actor n = Actor ''Bob'' \<longrightarrow> (n @\<^bsub>aid_graph\<^esub> cabin) \<longrightarrow> isin aid_graph door ''locked'')"
 by (simp add: aid_graph_def isin_def ex_locs'_def)
 qed
 
@@ -569,7 +568,6 @@ This is the purpose of the two-person rule which we want to investigate in
 more detail in this paper. Therefore, we next address how to add the 
 two-person role to the model.\<close>
 
-
 subsection \<open>Introduce Two-Person Rule\<close>
 text \<open>To express the rule that two authorized
 personnel must be present at all times in the cockpit, we have define a second set of
@@ -636,9 +634,9 @@ which is expressed in the predicate @{text \<open>nodup\<close>} (see above).\<c
 text \<open>Invariant: actors cannot be at two places at the same time\<close>
 lemma  actors_unique_loc_base: 
   assumes "I \<rightarrow>\<^sub>n I'"
-      and "(\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
+      and "(\<forall> l l'. (a @\<^bsub>graphI I\<^esub> l) \<and> (a @\<^bsub>graphI I\<^esub> l') \<longrightarrow> l = l')\<and>
            (\<forall> l. nodup a (agra (graphI I) l))"
-    shows "(\<forall> l l'. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l'  \<longrightarrow> l = l') \<and>
+    shows "(\<forall> l l'. (a @\<^bsub>graphI I'\<^esub> l) \<and> (a @\<^bsub>graphI I'\<^esub> l')  \<longrightarrow> l = l') \<and>
            (\<forall> l. nodup a (agra (graphI I') l))"
 proof (rule state_transition_in.cases, rule assms(1))
   show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) (a'::char list) (z::char list)
@@ -655,14 +653,14 @@ proof (rule state_transition_in.cases, rule assms(1))
         (Lgraph (gra G) (agra G)
           ((cgra G)(Actor a' := (z # fst (cgra G (Actor a')), snd (cgra G (Actor a'))))) (lgra G))
         (delta Ia) \<Longrightarrow>
-       (\<forall>(l::location) l'::location. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l' \<longrightarrow> l = l') \<and>
+       (\<forall>(l::location) l'::location. (a @\<^bsub>graphI I'\<^esub> l) \<and> (a @\<^bsub>graphI I'\<^esub> l') \<longrightarrow> l = l') \<and>
        (\<forall>l::location. nodup a (agra (graphI I') l))" using assms
     by (simp add: atI_def)
 next fix G Ia aa l I'a z
   assume a0: "I = Ia" and a1: "I' = I'a" and a2: "G = graphI Ia" and a3: "aa @\<^bsub>G\<^esub> l"
      and a4: "enables Ia l (Actor aa) put" 
      and a5: "I'a = Infrastructure (Lgraph (gra G) (agra G) (cgra G) ((lgra G)(l := [z]))) (delta Ia)"
-  show "(\<forall>(l::location) l'::location. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l' \<longrightarrow> l = l') \<and>
+  show "(\<forall>(l::location) l'::location. (a @\<^bsub>graphI I'\<^esub> l) \<and> (a @\<^bsub>graphI I'\<^esub> l') \<longrightarrow> l = l') \<and>
        (\<forall>l::location. nodup a (agra (graphI I') l))"using assms
     by (simp add: a0 a1 a2 a3 a4 a5 atI_def)
 next show "\<And>(G::igraph) (Ia::infrastructure) (l::location) (aa::char list) (I'a::infrastructure)
@@ -672,7 +670,7 @@ next show "\<And>(G::igraph) (Ia::infrastructure) (l::location) (aa::char list) 
        G = graphI Ia \<Longrightarrow>
        enables Ia l (Actor aa) put \<Longrightarrow>
        I'a = Infrastructure (Lgraph (gra G) (agra G) (cgra G) ((lgra G)(l := [z]))) (delta Ia) \<Longrightarrow>
-       (\<forall>(l::location) l'::location. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l' \<longrightarrow> l = l') \<and>
+       (\<forall>(l::location) l'::location. (a @\<^bsub>graphI I'\<^esub> l) \<and> (a @\<^bsub>graphI I'\<^esub> l') \<longrightarrow> l = l') \<and>
        (\<forall>l::location. nodup a (agra (graphI I') l))"
     by (clarify, simp add: assms atI_def)
 next show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) (l'::location)
@@ -686,7 +684,7 @@ next show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) 
        aa \<in> actors_graph (graphI Ia) \<Longrightarrow>
        enables Ia l' (Actor aa) move \<Longrightarrow>
        I'a = Infrastructure (move_graph_a aa l l' (graphI Ia)) (delta Ia) \<Longrightarrow>
-       (\<forall>(l::location) l'::location. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l' \<longrightarrow> l = l') \<and>
+       (\<forall>(l::location) l'::location. (a @\<^bsub>graphI I'\<^esub> l) \<and> (a @\<^bsub>graphI I'\<^esub> l') \<longrightarrow> l = l') \<and>
        (\<forall>l::location. nodup a (agra (graphI I') l))"
   proof (simp add: move_graph_a_def,rule conjI, clarify, rule conjI, clarify, rule conjI, clarify)
     show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) (l'::location)
@@ -758,8 +756,8 @@ next show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) 
        enables I l' (Actor a) move \<Longrightarrow>
        (a \<in> set (agra (graphI I) l) \<longrightarrow> a \<in> set (agra (graphI I) l')) \<longrightarrow>
        (\<forall>(l::location) l'::location.
-           a @\<^bsub>Lgraph (gra (graphI I)) (agra (graphI I)) (cgra (graphI I)) (lgra (graphI I))\<^esub> l \<and>
-           a @\<^bsub>Lgraph (gra (graphI I)) (agra (graphI I)) (cgra (graphI I)) (lgra (graphI I))\<^esub> l' \<longrightarrow>
+           (a @\<^bsub>Lgraph (gra (graphI I)) (agra (graphI I)) (cgra (graphI I)) (lgra (graphI I))\<^esub> l) \<and>
+           (a @\<^bsub>Lgraph (gra (graphI I)) (agra (graphI I)) (cgra (graphI I)) (lgra (graphI I))\<^esub> l') \<longrightarrow>
            l = l') \<and>
        (\<forall>l::location. nodup a (agra (graphI I) l))"
       by (simp add: assms(2) atI_def)
@@ -791,14 +789,14 @@ next show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) 
        aa \<noteq> a \<longrightarrow>
        (aa \<in> set (agra (graphI Ia) l) \<and> aa \<notin> set (agra (graphI Ia) l') \<longrightarrow>
         (\<forall>(la::location) l'a::location.
-            a @\<^bsub>Lgraph (gra (graphI Ia))
+            (a @\<^bsub>Lgraph (gra (graphI Ia))
                  ((agra (graphI Ia))
                   (l := del aa (agra (graphI Ia) l), l' := aa # agra (graphI Ia) l'))
-                 (cgra (graphI Ia)) (lgra (graphI Ia))\<^esub> la \<and>
-            a @\<^bsub>Lgraph (gra (graphI Ia))
+                 (cgra (graphI Ia)) (lgra (graphI Ia))\<^esub> la) \<and>
+            (a @\<^bsub>Lgraph (gra (graphI Ia))
                  ((agra (graphI Ia))
                   (l := del aa (agra (graphI Ia) l), l' := aa # agra (graphI Ia) l'))
-                 (cgra (graphI Ia)) (lgra (graphI Ia))\<^esub> l'a \<longrightarrow>
+                 (cgra (graphI Ia)) (lgra (graphI Ia))\<^esub> l'a) \<longrightarrow>
             la = l'a) \<and>
         (\<forall>la::location.
             (la = l \<longrightarrow>
@@ -809,10 +807,10 @@ next show "\<And>(G::igraph) (Ia::infrastructure) (aa::char list) (l::location) 
              (la \<noteq> l' \<longrightarrow> nodup a (agra (graphI Ia) la))))) \<and>
        ((aa \<in> set (agra (graphI Ia) l) \<longrightarrow> aa \<in> set (agra (graphI Ia) l')) \<longrightarrow>
         (\<forall>(l::location) l'::location.
-            a @\<^bsub>Lgraph (gra (graphI Ia)) (agra (graphI Ia)) (cgra (graphI Ia))
-                 (lgra (graphI Ia))\<^esub> l \<and>
-            a @\<^bsub>Lgraph (gra (graphI Ia)) (agra (graphI Ia)) (cgra (graphI Ia))
-                 (lgra (graphI Ia))\<^esub> l' \<longrightarrow>
+            (a @\<^bsub>Lgraph (gra (graphI Ia)) (agra (graphI Ia)) (cgra (graphI Ia))
+                 (lgra (graphI Ia))\<^esub> l) \<and>
+            (a @\<^bsub>Lgraph (gra (graphI Ia)) (agra (graphI Ia)) (cgra (graphI Ia))
+                 (lgra (graphI Ia))\<^esub> l') \<longrightarrow>
             l = l') \<and>
         (\<forall>l::location. nodup a (agra (graphI Ia) l)))"
     proof (clarify, simp add: atI_def,rule conjI,clarify,rule conjI,clarify,rule conjI,
@@ -935,37 +933,37 @@ qed
 
 lemma actors_unique_loc_step: 
   assumes "(I, I') \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
-      and "\<forall> a. (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
+      and "\<forall> a. (\<forall> l l'. (a @\<^bsub>graphI I\<^esub> l) \<and> (a @\<^bsub>graphI I\<^esub> l') \<longrightarrow> l = l')\<and>
           (\<forall> l. nodup a (agra (graphI I) l))" 
-    shows   "\<forall> a. (\<forall> l l'. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l'  \<longrightarrow> l = l') \<and>
+    shows   "\<forall> a. (\<forall> l l'. (a @\<^bsub>graphI I'\<^esub> l) \<and> (a @\<^bsub>graphI I'\<^esub> l')  \<longrightarrow> l = l') \<and>
           (\<forall> l. nodup a (agra (graphI I') l))"
 proof -
-  have ind: "(\<forall> a. (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
+  have ind: "(\<forall> a. (\<forall> l l'. (a @\<^bsub>graphI I\<^esub> l) \<and> (a @\<^bsub>graphI I\<^esub> l') \<longrightarrow> l = l')\<and>
           (\<forall> l. nodup a (agra (graphI I) l))) \<longrightarrow>
-       (\<forall> a. (\<forall> l l'. a @\<^bsub>graphI I'\<^esub> l \<and> a @\<^bsub>graphI I'\<^esub> l'  \<longrightarrow> l = l') \<and>
+       (\<forall> a. (\<forall> l l'. (a @\<^bsub>graphI I'\<^esub> l) \<and> (a @\<^bsub>graphI I'\<^esub> l')  \<longrightarrow> l = l') \<and>
           (\<forall> l. nodup a (agra (graphI I') l)))"
   proof (insert assms(1), erule rtrancl.induct)
     show "\<And>a::infrastructure.
        (\<forall>aa::char list.
-           (\<forall>(l::location) l'::location. aa @\<^bsub>graphI a\<^esub> l \<and> aa @\<^bsub>graphI a\<^esub> l' \<longrightarrow> l = l') \<and>
+           (\<forall>(l::location) l'::location. (aa @\<^bsub>graphI a\<^esub> l) \<and> (aa @\<^bsub>graphI a\<^esub> l') \<longrightarrow> l = l') \<and>
            (\<forall>l::location. nodup aa (agra (graphI a) l))) \<longrightarrow>
        (\<forall>aa::char list.
-           (\<forall>(l::location) l'::location. aa @\<^bsub>graphI a\<^esub> l \<and> aa @\<^bsub>graphI a\<^esub> l' \<longrightarrow> l = l') \<and>
+           (\<forall>(l::location) l'::location. (aa @\<^bsub>graphI a\<^esub> l) \<and> (aa @\<^bsub>graphI a\<^esub> l') \<longrightarrow> l = l') \<and>
            (\<forall>l::location. nodup aa (agra (graphI a) l)))" by simp
   next show "\<And>(a::infrastructure) (b::infrastructure) (c::infrastructure).
        (a, b) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
        (\<forall>aa::char list.
-           (\<forall>(l::location) (l'::location). (aa @\<^bsub>graphI a\<^esub> l \<and> aa @\<^bsub>graphI a\<^esub> l') \<longrightarrow> l = l') \<and>
+           (\<forall>(l::location) (l'::location). (aa @\<^bsub>graphI a\<^esub> l) \<and> (aa @\<^bsub>graphI a\<^esub> l') \<longrightarrow> l = l') \<and>
            (\<forall>l::location. nodup aa (agra (graphI a) l))) \<longrightarrow>
        (\<forall>a::char list.
-           (\<forall>(l::location) (l'::location). (a @\<^bsub>graphI b\<^esub> l \<and> a @\<^bsub>graphI b\<^esub> l') \<longrightarrow> l = l') \<and>
+           (\<forall>(l::location) (l'::location). (a @\<^bsub>graphI b\<^esub> l) \<and> (a @\<^bsub>graphI b\<^esub> l') \<longrightarrow> l = l') \<and>
            (\<forall>l::location. nodup a (agra (graphI b) l))) \<Longrightarrow>
        (b, c) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y} \<Longrightarrow>
        (\<forall>aa::char list.
-           (\<forall>(l::location) l'::location. (aa @\<^bsub>graphI a\<^esub> l \<and> aa @\<^bsub>graphI a\<^esub> l') \<longrightarrow> l = l') \<and>
+           (\<forall>(l::location) l'::location. (aa @\<^bsub>graphI a\<^esub> l) \<and> (aa @\<^bsub>graphI a\<^esub> l') \<longrightarrow> l = l') \<and>
            (\<forall>l::location. nodup aa (agra (graphI a) l))) \<longrightarrow>
        (\<forall>a::char list.
-           (\<forall>(l::location) l'::location. (a @\<^bsub>graphI c\<^esub> l \<and> a @\<^bsub>graphI c\<^esub> l') \<longrightarrow> l = l') \<and>
+           (\<forall>(l::location) l'::location. (a @\<^bsub>graphI c\<^esub> l) \<and> (a @\<^bsub>graphI c\<^esub> l') \<longrightarrow> l = l') \<and>
            (\<forall>l::location. nodup a (agra (graphI c) l)))"
       by (rule impI, rule allI, rule actors_unique_loc_base, drule CollectD, 
              simp,erule impE, assumption, erule spec)   
@@ -975,8 +973,8 @@ proof -
 qed
 
 lemma actors_unique_loc_aid_base:"
- \<forall> a. (\<forall> l l'. a @\<^bsub>graphI Airplane_not_in_danger_init\<^esub> l \<and> 
-               a @\<^bsub>graphI Airplane_not_in_danger_init\<^esub> l' \<longrightarrow> l = l')\<and>
+ \<forall> a. (\<forall> l l'. (a @\<^bsub>graphI Airplane_not_in_danger_init\<^esub> l) \<and> 
+               (a @\<^bsub>graphI Airplane_not_in_danger_init\<^esub> l') \<longrightarrow> l = l')\<and>
          (\<forall> l. nodup a (agra (graphI Airplane_not_in_danger_init) l))"  
 proof (simp add: Airplane_not_in_danger_init_def ex_graph_def, clarify, rule conjI, clarify,
       rule conjI, clarify, rule impI, (rule allI)+, rule impI, simp add: atI_def)
@@ -995,16 +993,16 @@ proof (simp add: Airplane_not_in_danger_init_def ex_graph_def, clarify, rule con
 next show "\<And>a::char list.
        ''Charly'' \<noteq> a \<longrightarrow>
        (\<forall>(l::location) l'::location.
-           a @\<^bsub>Lgraph {(cockpit, door), (door, cabin)}
+           (a @\<^bsub>Lgraph {(cockpit, door), (door, cabin)}
                 (\<lambda>x::location.
                     if x = cockpit then [''Bob'', ''Charly'']
                     else if x = door then [] else if x = cabin then [''Alice''] else [])
-                ex_creds ex_locs\<^esub> l \<and>
-           a @\<^bsub>Lgraph {(cockpit, door), (door, cabin)}
+                ex_creds ex_locs\<^esub> l) \<and>
+           (a @\<^bsub>Lgraph {(cockpit, door), (door, cabin)}
                 (\<lambda>x::location.
                     if x = cockpit then [''Bob'', ''Charly'']
                     else if x = door then [] else if x = cabin then [''Alice''] else [])
-                ex_creds ex_locs\<^esub> l' \<longrightarrow>
+                ex_creds ex_locs\<^esub> l') \<longrightarrow>
            l = l')"
   by (clarify, simp add: atI_def, case_tac "l = l'", assumption, rule FalseE,
       case_tac "l = cockpit \<or> l = door \<or> l = cabin", erule disjE, simp,
@@ -1016,7 +1014,7 @@ qed
 
 lemma actors_unique_loc_aid_step: 
 "(Airplane_not_in_danger_init, I)\<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
- \<Longrightarrow>     \<forall> a. (\<forall> l l'. a @\<^bsub>graphI I\<^esub> l \<and> a @\<^bsub>graphI I\<^esub> l' \<longrightarrow> l = l')\<and>
+ \<Longrightarrow>     \<forall> a. (\<forall> l l'. (a @\<^bsub>graphI I\<^esub> l) \<and> (a @\<^bsub>graphI I\<^esub> l') \<longrightarrow> l = l')\<and>
          (\<forall> l. nodup a (agra (graphI I) l))"  
   by (erule actors_unique_loc_step, rule actors_unique_loc_aid_base)
     
@@ -1293,7 +1291,6 @@ action @{text \<open>c\<close>} at a location @{text \<open>l\<close>} that if t
 that is not an insider, that is, is not impersonated by Eve, then the insider is
 disabled for that action @{text \<open>c\<close>}.\<close>
 
-
 subsection \<open>Proving Security in Refined Model\<close>
 text \<open>Having identified the missing formulation of the intentional effects of
 the two-person rule, we can now finally prove the general security property 
@@ -1325,7 +1322,7 @@ lemma Set_all_unique: "\<lbrakk> S \<noteq> {}; (\<forall> x \<in> S. x = c) \<r
 lemma airplane_actors_inv0[rule_format]: 
     "\<forall> z z'. (\<forall>h::char list \<in> set (agra (graphI z) cockpit). h \<in> airplane_actors) \<and> 
           (Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<and>
-            z \<rightarrow>\<^sub>n z' \<longrightarrow>  (\<forall>h::char list\<in>set (agra (graphI z') cockpit). h \<in> airplane_actors)"     
+            (z \<rightarrow>\<^sub>n z') \<longrightarrow>  (\<forall>h::char list\<in>set (agra (graphI z') cockpit). h \<in> airplane_actors)"     
 proof (clarify, erule state_transition_in.cases)
   show " \<And>(z::infrastructure) (z'::infrastructure) (h::char list) (G::igraph) (I::infrastructure)
        (a::char list) (l::location) (a'::char list) (za::char list) I'::infrastructure.
