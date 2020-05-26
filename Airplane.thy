@@ -1795,6 +1795,26 @@ next show "Airplane_not_in_danger_init \<in> AG {x::infrastructure. global_polic
 qed
 qed
 
+lemma two_person_set_inv_gen: 
+  assumes "(I, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
+     and "(2::nat) \<le> card (set (agra (graphI I) cockpit))"
+    shows "(2::nat) \<le> card (set (agra (graphI z) cockpit))"  
+ proof (insert assms, erule rtrancl_induct)
+   show \<open>2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit))\<close>
+     .
+ next show \<open>\<And>y z. 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
+           (I, y) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+           (y, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y} \<Longrightarrow>
+           2 \<le> card (set (agra (graphI y) cockpit)) \<Longrightarrow> 2 \<le> card (set (agra (graphI z) cockpit)) \<close>
+     by (metis Airplane_not_in_danger_init_def Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def graphI.simps rtrancl.rtrancl_refl tp_imp_control)
+ qed
+
+theorem Gen_policy: 
+  assumes "(I0, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
+     and "(2::nat) \<le> card (set (agra (graphI I0) cockpit))"
+   shows "Kripke  { I. I0 \<rightarrow>\<^sub>n* I } {I0} \<turnstile> AG {x. global_policy x ''Eve''}"
+  by (metis Airplane_not_in_danger_init_def Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def graphI.simps rtrancl.intros(1) tp_imp_control) 
+
 end
 
 subsection \<open>Locale interpretation\<close>
