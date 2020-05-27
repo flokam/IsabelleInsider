@@ -231,7 +231,7 @@ defines Security_def: "Security I a \<equiv>  (isin (graphI I) door ''locked'')
 
 fixes foe_control :: "[location, action] \<Rightarrow> bool"
 defines foe_control_def: "foe_control l c \<equiv>  
-   (! I:: infrastructure. (? x :: identity. 
+   (\<forall> I:: infrastructure. (\<exists> x :: identity. 
         (x @\<^bsub>graphI I\<^esub> l) \<and> Actor x \<noteq> Actor ''Eve'')
              \<longrightarrow> \<not>(enables I l (Actor ''Eve'') c))"
 
@@ -242,9 +242,13 @@ defines astate_def: "astate x \<equiv>  (case x of
 
 assumes Eve_precipitating_event: "tipping_point (astate ''Eve'')"
 assumes Insider_Eve: "Insider ''Eve'' {''Charly''} astate"
-assumes cockpit_foe_control: "foe_control cockpit put"
+(* assumes cockpit_foe_control: "foe_control cockpit put" *)
 
 begin
+
+lemma "Actor ''Eve'' = Actor ''Charly''"
+  using Eve_precipitating_event Insider_Eve Insider_def UasI_def by blast
+
 subsection \<open>Insider Attack, Safety, and Security\<close>
 text \<open>Above, we first stage the insider attack and introduce
 basic definitions of safety and security for the airplane scenario.
@@ -1096,6 +1100,11 @@ lemma Apnid_tsp_test_gen: "~(enables Airplane_not_in_danger_init l (Actor a) get
 lemma test_graph_atI: "''Bob'' @\<^bsub>graphI Airplane_not_in_danger_init\<^esub> cockpit" 
   by (simp add: Airplane_not_in_danger_init_def ex_graph_def atI_def)  
 
+lemma "\<not> foe_control cockpit put"
+  by (smt Airplane_not_in_danger_init_def Airplane_scenario_def Eve_precipitating_event Insider_Eve 
+      Insider_def UasI_def char.inject ex_inv3 foe_control_def global_policy_def graphI.simps 
+      list.inject singletonI test_graph_atI)
+  
 text \<open>The following invariant shows that the number of staff in the cockpit is never below 2.\<close>
 lemma two_person_inv: 
   fixes z z' 
@@ -1798,7 +1807,7 @@ qed
 lemma two_person_set_inv_gen: 
   assumes "(I, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
      and "(2::nat) \<le> card (set (agra (graphI I) cockpit))"
-    shows "(2::nat) \<le> card (set (agra (graphI z) cockpit))"  
+    shows "(2::nat) \<le> card (set (agra (graphI z) cockpit))"
  proof (insert assms, erule rtrancl_induct)
    show \<open>2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit))\<close>
      .
@@ -1808,6 +1817,7 @@ lemma two_person_set_inv_gen:
            2 \<le> card (set (agra (graphI y) cockpit)) \<Longrightarrow> 2 \<le> card (set (agra (graphI z) cockpit)) \<close>
      by (metis Airplane_not_in_danger_init_def Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def graphI.simps rtrancl.rtrancl_refl tp_imp_control)
  qed
+
 
 theorem Gen_policy: 
   assumes "(I0, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
