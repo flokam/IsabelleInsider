@@ -176,7 +176,7 @@ defines local_policies_four_eyes_def: "local_policies_four_eyes G \<equiv>
          else (if y = door then 
               {(\<lambda> x.  ((? n. (n @\<^bsub>G\<^esub> cockpit) \<and> Actor n = x) \<and> 3 \<le> length(agra G cockpit)), {move})}
                else (if y = cabin then 
-                     {(\<lambda> x. ((? n. (n @\<^bsub>G\<^esub> door) \<and> Actor n = x)), {move})} 
+                     {(\<lambda> x. ((? n. (n @\<^bsub>G\<^esub> door) \<and> Actor n = x)\<and> 3 \<le> length(agra G cockpit)), {move})} 
                            else {})))"
 
 fixes Airplane_scenario :: "infrastructure" (structure)
@@ -229,9 +229,9 @@ fixes Security :: "[infrastructure, identity] \<Rightarrow> bool"
 defines Security_def: "Security I a \<equiv>  (isin (graphI I) door ''locked'') 
                        \<longrightarrow> \<not>(enables I cockpit (Actor a) move)"
 
-fixes foe_control :: "[location, action] \<Rightarrow> bool"
-defines foe_control_def: "foe_control l c \<equiv>  
-   (\<forall> I:: infrastructure. (\<exists> x :: identity. 
+fixes foe_control :: "[location, action, infrastructure kripke] \<Rightarrow> bool"
+defines foe_control_def: "foe_control l c K \<equiv>  
+   (\<forall> I:: infrastructure \<in> states K. (\<exists> x :: identity. 
         (x @\<^bsub>graphI I\<^esub> l) \<and> Actor x \<noteq> Actor ''Eve'')
              \<longrightarrow> \<not>(enables I l (Actor ''Eve'') c))"
 
@@ -242,7 +242,7 @@ defines astate_def: "astate x \<equiv>  (case x of
 
 assumes Eve_precipitating_event: "tipping_point (astate ''Eve'')"
 assumes Insider_Eve: "Insider ''Eve'' {''Charly''} astate"
-(* assumes cockpit_foe_control: "foe_control cockpit put" *)
+assumes cockpit_foe_control: "foe_control cockpit put Air_tp_Kripke"
 
 begin
 
@@ -1100,20 +1100,91 @@ lemma Apnid_tsp_test_gen: "~(enables Airplane_not_in_danger_init l (Actor a) get
 lemma test_graph_atI: "''Bob'' @\<^bsub>graphI Airplane_not_in_danger_init\<^esub> cockpit" 
   by (simp add: Airplane_not_in_danger_init_def ex_graph_def atI_def)  
 
-lemma "\<not> foe_control cockpit put"
+lemma "\<not> (foe_control cockpit put Air_tp_Kripke)"
+  oops
+(*
   by (smt Airplane_not_in_danger_init_def Airplane_scenario_def Eve_precipitating_event Insider_Eve 
       Insider_def UasI_def char.inject ex_inv3 foe_control_def global_policy_def graphI.simps 
-      list.inject singletonI test_graph_atI)
+      list.inject singletonI test_graph_atI) *)
   
-text \<open>The following invariant shows that the number of staff in the cockpit is never below 2.\<close>
+  text \<open>The following invariant shows that the number of staff in the cockpit is never below 2.\<close>
 lemma two_person_inv: 
+      "z \<rightarrow>\<^sub>n z'
+     \<Longrightarrow> (2::nat) \<le> length (agra (graphI z) cockpit)
+     \<Longrightarrow> nodes(graphI z) = nodes(graphI Airplane_not_in_danger_init)
+     \<Longrightarrow> delta(z) = delta(Airplane_not_in_danger_init)
+     \<Longrightarrow> (Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
+    \<Longrightarrow> (2::nat) \<le> length (agra (graphI z') cockpit)" 
+  thm state_transition_in.induct
+apply (erule state_transition_in.cases)
+     apply simp
+     apply (subgoal_tac "l' = cabin \<or> l' = door \<or> l' = cockpit")
+      apply (erule disjE)
+       apply simp
+       apply (subgoal_tac "delta I = local_policies_four_eyes")
+        apply (simp add: enables_def local_policies_four_eyes_def)
+        apply (erule bexE)
+  apply (unfold Airplane_not_in_danger_init_def local_policies_four_eyes_def)
+        apply simp
+        apply (case_tac x)
+        apply simp
+  apply (subgoal_tac "(aa, b)
+       \<in> {(\<lambda>x. (\<exists>n. n @\<^bsub>graphI I\<^esub> door \<and> Actor n = x) \<and> 3 \<le> length (agra (graphI I) cockpit), {move})}")
+         apply (subgoal_tac "3 \<le> length (agra (graphI I) cockpit)")
+          prefer 2
+  apply simp
+          apply (simp add: move_graph_a_def)
+  apply (metis (no_types, lifting) cabin_def cockpit_def del_sort location.inject numeral_2_eq_2 numeral_3_eq_3)
+  apply (simp add: cabin_def cockpit_def door_def)
+       apply simp
+(* *)
+  apply (erule disjE)
+       apply simp
+       apply (subgoal_tac "delta I = local_policies_four_eyes")
+        apply (simp add: enables_def local_policies_four_eyes_def)
+        apply (erule bexE)
+  apply (unfold Airplane_not_in_danger_init_def local_policies_four_eyes_def)
+        apply simp
+         apply (case_tac x)
+        apply simp
+  apply (subgoal_tac "(aa,b) \<in>
+{(\<lambda>x. (\<exists>n. n @\<^bsub>graphI I\<^esub> cockpit \<and> Actor n = x) \<and>
+                           3 \<le> length (agra (graphI I) cockpit),
+                       {move})}")
+         apply (subgoal_tac "3 \<le> length (agra (graphI I) cockpit)")
+          prefer 2
+  apply simp
+          apply (simp add: move_graph_a_def)
+  apply (metis (no_types, lifting) One_nat_def cockpit_def del_sort door_def location.inject numeral_2_eq_2 numeral_3_eq_3)
+  apply (simp add: cabin_def cockpit_def door_def)
+       apply simp
+(* l' = cockpit *)
+       apply simp
+       apply (subgoal_tac "delta I = local_policies_four_eyes")
+        apply (simp add: enables_def local_policies_four_eyes_def)
+        apply (erule exE)
+  apply (unfold Airplane_not_in_danger_init_def local_policies_four_eyes_def)
+        apply simp
+       apply (simp add: move_graph_a_def)
+      apply simp
+  using not_enableI apply force
+(* get *)
+  apply simp
+(* *)
+   apply simp
+(* *)
+  by simp
+
+(*
+lemma two_person_inv': 
   fixes z z' 
   assumes "(2::nat) \<le> length (agra (graphI z) cockpit)"
       and "nodes(graphI z) = nodes(graphI Airplane_not_in_danger_init)"
       and "delta(z) = delta(Airplane_not_in_danger_init)"
       and "(Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*"
       and "z \<rightarrow>\<^sub>n z'"
-    shows "(2::nat) \<le> length (agra (graphI z') cockpit)"
+    shows "(2::nat) \<le> length (agra (graphI z') cockpit)" 
+
 proof (insert assms(5), erule state_transition_in.cases)
   show "\<And>(G::igraph) (I::infrastructure) (a::char list) (l::location) (a'::char list) (za::char list)
        I'::infrastructure.
@@ -1169,11 +1240,13 @@ fix G :: igraph and I :: infrastructure and a :: "char list" and l :: location a
   have "''Bob'' @\<^bsub>graphI (Infrastructure ex_graph local_policies)\<^esub> Location 2"
     using Airplane_not_in_danger_init_def cockpit_def test_graph_atI by force
   then have "Actor ''Bob'' = Actor ''Eve''"
-    using Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def by blast
+    using Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def 
+    sorry (* by blast *)
   then show "2 \<le> length (agra (graphI z') cockpit)"
     using f2 f1 by auto
 qed
 qed
+*)
 
 lemma two_person_inv1:
   assumes "(Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
@@ -1185,8 +1258,8 @@ next show "\<And>(y::infrastructure) z::infrastructure.
        (Airplane_not_in_danger_init, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
        (y, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y} \<Longrightarrow>
        (2::nat) \<le> length (agra (graphI y) cockpit) \<Longrightarrow> (2::nat) \<le> length (agra (graphI z) cockpit)"
-    by (rule two_person_inv, assumption, rule same_nodes, assumption, rule sym, 
-        rule init_state_policy, assumption+, simp)
+    by (rule two_person_inv, simp, assumption, rule same_nodes, assumption,
+          rule sym, rule init_state_policy, assumption+)
 qed
 
 text \<open>The version of @{text \<open>two_person_inv\<close>} above, that we need, uses cardinality of lists of 
@@ -1740,8 +1813,11 @@ qed
 
 lemma Fend_2: "(Airplane_not_in_danger_init,I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
          \<not> enables I cockpit (Actor ''Eve'') put"
-  by (insert cockpit_foe_control, simp add: foe_control_def, drule_tac x = I in spec,
-      erule mp, erule tp_imp_control)
+  by (insert cockpit_foe_control, simp add: foe_control_def, drule_tac x = I in bspec,
+         simp add: Air_tp_Kripke_def Air_tp_states_def state_transition_in_refl_def, 
+         erule mp, erule tp_imp_control)
+(*  by (insert cockpit_foe_control, simp add: foe_control_def, drule_tac x = I in spec,
+      erule mp, erule tp_imp_control) *)
 
 theorem Four_eyes_no_danger: "Air_tp_Kripke \<turnstile> AG ({x. global_policy x ''Eve''})"
 proof (simp add: Air_tp_Kripke_def check_def, rule conjI)
@@ -1815,7 +1891,9 @@ lemma two_person_set_inv_gen:
            (I, y) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
            (y, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y} \<Longrightarrow>
            2 \<le> card (set (agra (graphI y) cockpit)) \<Longrightarrow> 2 \<le> card (set (agra (graphI z) cockpit)) \<close>
-     by (metis Airplane_not_in_danger_init_def Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def graphI.simps rtrancl.rtrancl_refl tp_imp_control)
+     sorry
+(* by (metis Airplane_not_in_danger_init_def Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def graphI.simps rtrancl.rtrancl_refl tp_imp_control)
+*)
  qed
 
 
@@ -1823,8 +1901,9 @@ theorem Gen_policy:
   assumes "(I0, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
      and "(2::nat) \<le> card (set (agra (graphI I0) cockpit))"
    shows "Kripke  { I. I0 \<rightarrow>\<^sub>n* I } {I0} \<turnstile> AG {x. global_policy x ''Eve''}"
-  by (metis Airplane_not_in_danger_init_def Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def graphI.simps rtrancl.intros(1) tp_imp_control) 
-
+  sorry
+(*  by (metis Airplane_not_in_danger_init_def Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def graphI.simps rtrancl.intros(1) tp_imp_control)
+*)
 end
 
 subsection \<open>Locale interpretation\<close>
@@ -1902,7 +1981,7 @@ definition local_policies_four_eyes_def': "local_policies_four_eyes G \<equiv>
          else (if y = door then 
               {(\<lambda> x.  ((? n. (n @\<^bsub>G\<^esub> cockpit) \<and> Actor n = x) \<and> 3 \<le> length(agra G cockpit)), {move})}
                else (if y = cabin then 
-                     {(\<lambda> x. ((? n. (n @\<^bsub>G\<^esub> door) \<and> Actor n = x)), {move})} 
+                     {(\<lambda> x. ((? n. (n @\<^bsub>G\<^esub> door) \<and> Actor n = x)\<and> 3 \<le> length(agra G cockpit)), {move})} 
                            else {})))"
 
 definition Airplane_scenario_def':
@@ -1940,8 +2019,8 @@ definition Safety_def': "Safety I a \<equiv> a \<in> airplane_actors
 definition Security_def': "Security I a \<equiv>  (isin (graphI I) door ''locked'') 
                        \<longrightarrow> \<not>(enables I cockpit (Actor a) move)"
 
-definition foe_control_def': "foe_control l c \<equiv>  
-   (! I:: infrastructure. (? x :: identity. 
+definition foe_control_def': "foe_control l c K \<equiv>  
+   (\<forall> I:: infrastructure \<in> states K. (? x :: identity. 
         x @\<^bsub>graphI I\<^esub> l \<and> Actor x \<noteq> Actor ''Eve'')
              \<longrightarrow> \<not>(enables I l (Actor ''Eve'') c))"
 
@@ -1954,7 +2033,7 @@ print_interps airplane
 
 text \<open>The additional assumption identified in the case study needs to be given as an axiom\<close>
 axiomatization where
-cockpit_foe_control': "foe_control cockpit put"
+cockpit_foe_control': "foe_control cockpit put Air_tp_Kripke"
 
 text \<open>The following addresses the issue of redefining an abstract type.
    We experimented with suggestion given in \cite{mw:09}.
@@ -2044,10 +2123,77 @@ interpretation airplane airplane_actors airplane_locations cockpit door cabin gl
                Airplane_getting_in_danger0 Airplane_getting_in_danger Air_states Air_Kripke
                Airplane_not_in_danger Airplane_not_in_danger_init Air_tp_states 
                Air_tp_Kripke Safety Security foe_control astate
- by (rule airplane.intro, simp add: tipping_point_def,
+apply (rule airplane.intro, simp add: tipping_point_def)
+  apply (simp add: Insider_def UasI_def tipping_point_def atI_def)
+                      apply ( insert UasI_Actor, simp add: UasI_def)
+                      apply (insert cockpit_foe_control')
+                      apply (rule ballI)
+  apply (simp add: foe_control_def')
+                      apply (drule_tac x = I in bspec)
+apply (unfold Air_tp_Kripke_def'
+                             Air_tp_states_def' Airplane_not_in_danger_init_def'
+                             ex_graph_def' ex_creds_def' ex_locs_def' local_policies_four_eyes_def'
+                            foe_control_def' cockpit_def' door_def' cabin_def' airplane_actors_def')
+                      apply simp
+  apply assumption
+  apply (simp add: local_policies_four_eyes_def')
+apply
+    (simp add: airplane_actors_def' airplane_locations_def' cockpit_def' door_def' cabin_def' global_policy_def'
+               ex_creds_def' ex_locs_def' ex_locs'_def' ex_graph_def' aid_graph_def' aid_graph0_def' 
+               agid_graph_def' local_policies_def' local_policies_four_eyes_def' Airplane_scenario_def'
+               Airplane_in_danger_def' Airplane_getting_in_danger0_def' Airplane_getting_in_danger_def'
+               Air_states_def'  Air_Kripke_def' Airplane_not_in_danger_def' Airplane_not_in_danger_init_def'
+               Air_tp_states_def' Air_tp_Kripke_def' Safety_def' Security_def' 
+               foe_control_def' astate_def')+ 
+                      apply (unfold cockpit_def', rule reflexive)
+apply
+    (simp add: airplane_actors_def' airplane_locations_def' cockpit_def' door_def' cabin_def' global_policy_def'
+               ex_creds_def' ex_locs_def' ex_locs'_def' ex_graph_def' aid_graph_def' aid_graph0_def' 
+               agid_graph_def' local_policies_def' local_policies_four_eyes_def' Airplane_scenario_def'
+               Airplane_in_danger_def' Airplane_getting_in_danger0_def' Airplane_getting_in_danger_def'
+               Air_states_def'  Air_Kripke_def' Airplane_not_in_danger_def' Airplane_not_in_danger_init_def'
+               Air_tp_states_def' Air_tp_Kripke_def' Safety_def' Security_def' 
+               foe_control_def' astate_def')+ 
+                   apply (unfold cabin_def' door_def', rule reflexive)
+                   apply (unfold aid_graph0_def' ex_creds_def' ex_locs_def'
+                          cockpit_def'  door_def' cabin_def', rule reflexive)
+                   apply (unfold agid_graph_def' ex_creds_def' ex_locs_def'
+                          cockpit_def'  door_def' cabin_def', rule reflexive)
+                   apply (unfold local_policies_def' ex_creds_def' ex_locs_def'
+                          cockpit_def'  door_def' cabin_def', rule reflexive)
+  apply (rule reflexive)
+               apply (unfold Airplane_scenario_def' ex_graph_def' local_policies_def' 
+                          ex_creds_def' ex_locs_def'
+                          cockpit_def'  door_def' cabin_def', rule reflexive)
+ apply (unfold Airplane_in_danger_def' ex_graph_def' local_policies_def' 
+                          ex_creds_def' ex_locs_def'
+                          cockpit_def'  door_def' cabin_def', rule reflexive)
+ apply (unfold Airplane_getting_in_danger0_def' aid_graph0_def' ex_graph_def' local_policies_def' 
+                          ex_creds_def' ex_locs_def'
+                          cockpit_def'  door_def' cabin_def', rule reflexive)
+ apply (unfold Airplane_getting_in_danger_def' agid_graph_def' ex_graph_def' local_policies_def' 
+                          ex_creds_def' ex_locs_def'
+                          cockpit_def'  door_def' cabin_def', rule reflexive)
+ apply (unfold Air_states_def' Airplane_scenario_def' ex_graph_def' local_policies_def' 
+                          ex_creds_def' ex_locs_def'
+                          cockpit_def'  door_def' cabin_def', rule reflexive)
+ apply (unfold Air_Kripke_def' Air_states_def' Airplane_scenario_def' ex_graph_def' local_policies_def' 
+                          ex_creds_def' ex_locs_def'
+                          cockpit_def'  door_def' cabin_def', rule reflexive)
+ apply (unfold Airplane_not_in_danger_def' aid_graph_def' ex_graph_def' local_policies_four_eyes_def' 
+                          ex_creds_def' ex_locs_def' airplane_actors_def'
+                          cockpit_def'  door_def' cabin_def', rule reflexive)
+        apply (rule reflexive)+
+  apply (unfold Safety_def' airplane_actors_def' cockpit_def', rule reflexive)
+    apply (unfold Security_def' airplane_actors_def' cockpit_def' door_def', rule reflexive)
+       apply (rule reflexive)
+by (unfold astate_def', rule reflexive)
+
+(*
+by (rule airplane.intro, simp add: tipping_point_def,
      simp add: Insider_def UasI_def tipping_point_def atI_def, 
      insert UasI_Actor, simp add: UasI_def,
-     insert cockpit_foe_control', simp add: foe_control_def' cockpit_def',
+      insert cockpit_foe_control', simp add: foe_control_def' cockpit_def',
      rule airplane_actors_def',
     (simp add: airplane_locations_def' cockpit_def' door_def' cabin_def' global_policy_def'
                ex_creds_def' ex_locs_def' ex_locs'_def' ex_graph_def' aid_graph_def' aid_graph0_def' 
@@ -2056,7 +2202,7 @@ interpretation airplane airplane_actors airplane_locations cockpit door cabin gl
                Air_states_def'  Air_Kripke_def' Airplane_not_in_danger_def' Airplane_not_in_danger_init_def'
                Air_tp_states_def' Air_tp_Kripke_def' Safety_def' Security_def' 
                foe_control_def' astate_def')+)
-
+*)
 end
     
     
