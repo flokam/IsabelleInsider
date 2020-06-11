@@ -1112,33 +1112,99 @@ lemma two_person_inv:
       "z \<rightarrow>\<^sub>n z'
      \<Longrightarrow> (2::nat) \<le> length (agra (graphI z) cockpit)
      \<Longrightarrow> nodes(graphI z) = nodes(graphI Airplane_not_in_danger_init)
-     \<Longrightarrow> delta(z) = delta(Airplane_not_in_danger_init)
+     \<Longrightarrow> delta(Airplane_not_in_danger_init) = delta z
      \<Longrightarrow> (Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
     \<Longrightarrow> (2::nat) \<le> length (agra (graphI z') cockpit)" 
-  thm state_transition_in.induct
-apply (erule state_transition_in.cases)
-     apply simp
-     apply (subgoal_tac "l' = cabin \<or> l' = door \<or> l' = cockpit")
-      apply (erule disjE)
-       apply simp
+proof (erule state_transition_in.cases, simp, subgoal_tac "l' = cabin \<or> l' = door \<or> l' = cockpit", erule disjE, simp)
+  show \<open>\<And>G I a l l' I'.
+       2 \<le> length (agra (graphI I) cockpit) \<Longrightarrow>
+       nodes (graphI I) = nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       delta Airplane_not_in_danger_init = delta I \<Longrightarrow>
+       (Airplane_not_in_danger_init, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+       z = I \<Longrightarrow>
+       z' = Infrastructure (move_graph_a a l cabin (graphI I)) (delta I) \<Longrightarrow>
+       G = graphI I \<Longrightarrow>
+       a @\<^bsub>graphI I\<^esub> l \<Longrightarrow>
+       l \<in> nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       cabin \<in> nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       a \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I cabin (Actor a) move \<Longrightarrow>
+       I' = Infrastructure (move_graph_a a l cabin (graphI I)) (delta I) \<Longrightarrow>
+       l' = cabin \<Longrightarrow> 2 \<le> length (agra (move_graph_a a l cabin (graphI I)) cockpit)\<close>
        apply (subgoal_tac "delta I = local_policies_four_eyes")
-        apply (simp add: enables_def local_policies_four_eyes_def)
-        apply (erule bexE)
-  apply (unfold Airplane_not_in_danger_init_def local_policies_four_eyes_def)
-        apply simp
-        apply (case_tac x)
-        apply simp
-  apply (subgoal_tac "(aa, b)
-       \<in> {(\<lambda>x. (\<exists>n. n @\<^bsub>graphI I\<^esub> door \<and> Actor n = x) \<and> 3 \<le> length (agra (graphI I) cockpit), {move})}")
-         apply (subgoal_tac "3 \<le> length (agra (graphI I) cockpit)")
-          prefer 2
-  apply simp
-          apply (simp add: move_graph_a_def)
-  apply (metis (no_types, lifting) cabin_def cockpit_def del_sort location.inject numeral_2_eq_2 numeral_3_eq_3)
-  apply (simp add: cabin_def cockpit_def door_def)
-       apply simp
-(* *)
-  apply (erule disjE)
+       apply (simp add: enables_def local_policies_four_eyes_def)
+  proof -
+    fix G :: igraph and I :: infrastructure and a :: "char list" and l :: location and l' :: location and I' :: infrastructure
+    assume a1: "2 \<le> length (agra (graphI I) cockpit)"
+    assume a2: "\<exists>x\<in>if cabin = cockpit then {(\<lambda>x. (\<exists>n. n @\<^bsub>graphI I\<^esub> cockpit \<and> Actor n = x) \<and> 2 \<le> length (agra (graphI I) cabin) \<and> (\<forall>h\<in>set (agra (graphI I) cabin). h \<in> airplane_actors), {put}), (\<lambda>x. \<exists>n. n @\<^bsub>graphI I\<^esub> cabin \<and> Actor n = x \<and> has (graphI I) (x, ''PIN'') \<and> isin (graphI I) door ''norm'', {move})} else if cabin = door then {(\<lambda>x. (\<exists>n. n @\<^bsub>graphI I\<^esub> cockpit \<and> Actor n = x) \<and> 3 \<le> length (agra (graphI I) cockpit), {move})} else if cabin = cabin then {(\<lambda>x. (\<exists>n. n @\<^bsub>graphI I\<^esub> door \<and> Actor n = x) \<and> 3 \<le> length (agra (graphI I) cockpit), {move})} else {}. case x of (p, e) \<Rightarrow> move \<in> e \<and> p (Actor a)"
+    have f3: "cabin \<noteq> cockpit"
+      by (simp add: cabin_def cockpit_def)
+  obtain pp :: "(actor \<Rightarrow> bool) \<times> action set" where
+        f4: "pp \<in> (if cabin = cockpit then {(\<lambda>a. (\<exists>cs. cs @\<^bsub>graphI I\<^esub> cockpit \<and> Actor cs = a) \<and> 2 \<le> length (agra (graphI I) cabin) \<and> (\<forall>cs. cs \<in> set (agra (graphI I) cabin) \<longrightarrow> cs \<in> airplane_actors), {put}), (\<lambda>a. \<exists>cs. cs @\<^bsub>graphI I\<^esub> cabin \<and> Actor cs = a \<and> has (graphI I) (a, ''PIN'') \<and> isin (graphI I) door ''norm'', {move})} else if cabin = door then {(\<lambda>a. (\<exists>cs. cs @\<^bsub>graphI I\<^esub> cockpit \<and> Actor cs = a) \<and> 3 \<le> length (agra (graphI I) cockpit), {move})} else {(\<lambda>a. (\<exists>cs. cs @\<^bsub>graphI I\<^esub> door \<and> Actor cs = a) \<and> 3 \<le> length (agra (graphI I) cockpit), {move})}) \<and> (case pp of (p, A) \<Rightarrow> move \<in> A \<and> p (Actor a))"
+    using a2 by meson
+  then have f5: "pp = (\<lambda>a. (\<exists>cs. cs @\<^bsub>graphI I\<^esub> door \<and> Actor cs = a) \<and> 3 \<le> length (agra (graphI I) cockpit), {move}) \<longrightarrow> move \<in> {move} \<and> (\<exists>cs. cs @\<^bsub>graphI I\<^esub> door \<and> Actor cs = Actor a) \<and> 3 \<le> length (agra (graphI I) cockpit)"
+    by blast
+  { assume "\<not> (move \<in> {move} \<and> (\<exists>cs. cs @\<^bsub>graphI I\<^esub> cockpit \<and> Actor cs = Actor a) \<and> 3 \<le> length (agra (graphI I) cockpit))"
+    then have "pp \<noteq> (\<lambda>a. (\<exists>cs. cs @\<^bsub>graphI I\<^esub> cockpit \<and> Actor cs = a) \<and> 3 \<le> length (agra (graphI I) cockpit), {move})"
+      using f4 by blast
+then have "3 \<le> length (agra (graphI I) cockpit)"
+using f5 f4 f3 by (meson empty_iff insert_iff) }
+  moreover
+  { assume "(agra (graphI I)) (l := del a (agra (graphI I) l), cabin := a # agra (graphI I) cabin) \<noteq> agra (move_graph_a a l cabin (graphI I))"
+    then have "a \<notin> set (agra (graphI I) l) \<or> a \<in> set (agra (graphI I) cabin)"
+      using move_graph_a_def by force
+    then have "2 \<le> length (agra (move_graph_a a l cabin (graphI I)) cockpit)"
+      using a1 agra.simps move_graph_a_def by presburger }
+  ultimately show "2 \<le> length (agra (move_graph_a a l cabin (graphI I)) cockpit)"
+    using f3 a1 by (metis (no_types) del_sort fun_upd_apply numeral_2_eq_2 numeral_3_eq_3)
+next show \<open>\<And>G I a l l' I'.
+       2 \<le> length (agra (graphI I) cockpit) \<Longrightarrow>
+       nodes (graphI I) = nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       delta Airplane_not_in_danger_init = delta I \<Longrightarrow>
+       (Airplane_not_in_danger_init, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+       z = I \<Longrightarrow>
+       z' = Infrastructure (move_graph_a a l cabin (graphI I)) (delta I) \<Longrightarrow>
+       G = graphI I \<Longrightarrow>
+       a @\<^bsub>graphI I\<^esub> l \<Longrightarrow>
+       l \<in> nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       cabin \<in> nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       a \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I cabin (Actor a) move \<Longrightarrow>
+       I' = Infrastructure (move_graph_a a l cabin (graphI I)) (delta I) \<Longrightarrow>
+       l' = cabin \<Longrightarrow> delta I = local_policies_four_eyes \<close>
+    by (simp add: Airplane_not_in_danger_init_def) 
+qed
+next show \<open> \<And>G I a l l' I'.
+       2 \<le> length (agra (graphI I) cockpit) \<Longrightarrow>
+       nodes (graphI I) = nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       delta Airplane_not_in_danger_init = delta I \<Longrightarrow>
+       (Airplane_not_in_danger_init, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+       z = I \<Longrightarrow>
+       z' = Infrastructure (move_graph_a a l l' (graphI I)) (delta I) \<Longrightarrow>
+       G = graphI I \<Longrightarrow>
+       a @\<^bsub>graphI I\<^esub> l \<Longrightarrow>
+       l \<in> nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       l' \<in> nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       a \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor a) move \<Longrightarrow>
+       I' = Infrastructure (move_graph_a a l l' (graphI I)) (delta I) \<Longrightarrow>
+       l' = door \<or> l' = cockpit \<Longrightarrow> 2 \<le> length (agra (move_graph_a a l l' (graphI I)) cockpit)\<close>
+     proof (erule disjE)
+       show \<open>\<And>G I a l l' I'.
+       2 \<le> length (agra (graphI I) cockpit) \<Longrightarrow>
+       nodes (graphI I) = nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       delta Airplane_not_in_danger_init = delta I \<Longrightarrow>
+       (Airplane_not_in_danger_init, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+       z = I \<Longrightarrow>
+       z' = Infrastructure (move_graph_a a l l' (graphI I)) (delta I) \<Longrightarrow>
+       G = graphI I \<Longrightarrow>
+       a @\<^bsub>graphI I\<^esub> l \<Longrightarrow>
+       l \<in> nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       l' \<in> nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       a \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor a) move \<Longrightarrow>
+       I' = Infrastructure (move_graph_a a l l' (graphI I)) (delta I) \<Longrightarrow>
+       l' = door \<Longrightarrow> 2 \<le> length (agra (move_graph_a a l l' (graphI I)) cockpit)\<close>
        apply simp
        apply (subgoal_tac "delta I = local_policies_four_eyes")
         apply (simp add: enables_def local_policies_four_eyes_def)
@@ -1157,37 +1223,48 @@ apply (erule state_transition_in.cases)
           apply (simp add: move_graph_a_def)
   apply (metis (no_types, lifting) One_nat_def cockpit_def del_sort door_def location.inject numeral_2_eq_2 numeral_3_eq_3)
   apply (simp add: cabin_def cockpit_def door_def)
-       apply simp
-(* l' = cockpit *)
-       apply simp
-       apply (subgoal_tac "delta I = local_policies_four_eyes")
+         by simp
+next show \<open>\<And>G I a l l' I'.
+       2 \<le> length (agra (graphI I) cockpit) \<Longrightarrow>
+       nodes (graphI I) = nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       delta Airplane_not_in_danger_init = delta I \<Longrightarrow>
+       (Airplane_not_in_danger_init, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+       z = I \<Longrightarrow>
+       z' = Infrastructure (move_graph_a a l l' (graphI I)) (delta I) \<Longrightarrow>
+       G = graphI I \<Longrightarrow>
+       a @\<^bsub>graphI I\<^esub> l \<Longrightarrow>
+       l \<in> nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       l' \<in> nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       a \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor a) move \<Longrightarrow>
+       I' = Infrastructure (move_graph_a a l l' (graphI I)) (delta I) \<Longrightarrow>
+       l' = cockpit \<Longrightarrow> 2 \<le> length (agra (move_graph_a a l l' (graphI I)) cockpit)\<close>
+         apply simp
+         apply (subgoal_tac "delta I = local_policies_four_eyes")
         apply (simp add: enables_def local_policies_four_eyes_def)
-        apply (erule exE)
-  apply (unfold Airplane_not_in_danger_init_def local_policies_four_eyes_def)
-        apply simp
-       apply (simp add: move_graph_a_def)
-      apply simp
-  using not_enableI apply force
-(* get *)
-  apply simp
-(* *)
-   apply simp
-(* *)
-  by simp
-
-(*
-lemma two_person_inv': 
-  fixes z z' 
-  assumes "(2::nat) \<le> length (agra (graphI z) cockpit)"
-      and "nodes(graphI z) = nodes(graphI Airplane_not_in_danger_init)"
-      and "delta(z) = delta(Airplane_not_in_danger_init)"
-      and "(Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*"
-      and "z \<rightarrow>\<^sub>n z'"
-    shows "(2::nat) \<le> length (agra (graphI z') cockpit)" 
-
-proof (insert assms(5), erule state_transition_in.cases)
-  show "\<And>(G::igraph) (I::infrastructure) (a::char list) (l::location) (a'::char list) (za::char list)
-       I'::infrastructure.
+    using move_graph_a_def apply auto[1]
+    by (simp add: Airplane_not_in_danger_init_def)
+qed
+next show \<open>\<And>G I a l l' I'.
+       2 \<le> length (agra (graphI I) cockpit) \<Longrightarrow>
+       nodes (graphI I) = nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       delta Airplane_not_in_danger_init = delta I \<Longrightarrow>
+       (Airplane_not_in_danger_init, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+       z = I \<Longrightarrow>
+       z' = Infrastructure (move_graph_a a l l' (graphI I)) (delta I) \<Longrightarrow>
+       G = graphI I \<Longrightarrow>
+       a @\<^bsub>graphI I\<^esub> l \<Longrightarrow>
+       l \<in> nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       l' \<in> nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       a \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor a) move \<Longrightarrow>
+       I' = Infrastructure (move_graph_a a l l' (graphI I)) (delta I) \<Longrightarrow> l' = cabin \<or> l' = door \<or> l' = cockpit\<close>
+      by (metis (no_types, lifting) Airplane_not_in_danger_init_def all_not_in_conv delta.simps local_policies_four_eyes_def not_enableI2) 
+  next show \<open>\<And>G I a l a' za I'.
+       2 \<le> length (agra (graphI z) cockpit) \<Longrightarrow>
+       nodes (graphI z) = nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       delta Airplane_not_in_danger_init = delta z \<Longrightarrow>
+       (Airplane_not_in_danger_init, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
        z = I \<Longrightarrow>
        z' = I' \<Longrightarrow>
        G = graphI I \<Longrightarrow>
@@ -1197,56 +1274,33 @@ proof (insert assms(5), erule state_transition_in.cases)
        enables I l (Actor a) get \<Longrightarrow>
        I' =
        Infrastructure
-        (Lgraph (gra G) (agra G)
-          ((cgra G)(Actor a' := (za # fst (cgra G (Actor a')), snd (cgra G (Actor a'))))) (lgra G))
+        (Lgraph (gra G) (agra G) ((cgra G)(Actor a' := (za # fst (cgra G (Actor a')), snd (cgra G (Actor a'))))) (lgra G))
         (delta I) \<Longrightarrow>
-       (2::nat) \<le> length (agra (graphI z') cockpit)" using assms by simp
-next show "\<And>(G::igraph) (I::infrastructure) (a::char list) (l::location) (I'::infrastructure)
-       za::char list.
+       2 \<le> length (agra (graphI z') cockpit)\<close> by simp
+  next show \<open>\<And>G I a l I' za.
+       2 \<le> length (agra (graphI z) cockpit) \<Longrightarrow>
+       nodes (graphI z) = nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       delta Airplane_not_in_danger_init = delta z \<Longrightarrow>
+       (Airplane_not_in_danger_init, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
        z = I \<Longrightarrow>
        z' = I' \<Longrightarrow>
        G = graphI I \<Longrightarrow>
        a @\<^bsub>G\<^esub> l \<Longrightarrow>
        enables I l (Actor a) put \<Longrightarrow>
        I' = Infrastructure (Lgraph (gra G) (agra G) (cgra G) ((lgra G)(l := [za]))) (delta I) \<Longrightarrow>
-       (2::nat) \<le> length (agra (graphI z') cockpit)" using assms by simp
-next show "\<And>(G::igraph) (I::infrastructure) (l::location) (a::char list) (I'::infrastructure)
-       za::char list.
+       2 \<le> length (agra (graphI z') cockpit)\<close> by simp
+  next show \<open>\<And>G I l a I' za.
+       2 \<le> length (agra (graphI z) cockpit) \<Longrightarrow>
+       nodes (graphI z) = nodes (graphI Airplane_not_in_danger_init) \<Longrightarrow>
+       delta Airplane_not_in_danger_init = delta z \<Longrightarrow>
+       (Airplane_not_in_danger_init, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
        z = I \<Longrightarrow>
        z' = I' \<Longrightarrow>
        G = graphI I \<Longrightarrow>
        enables I l (Actor a) put \<Longrightarrow>
        I' = Infrastructure (Lgraph (gra G) (agra G) (cgra G) ((lgra G)(l := [za]))) (delta I) \<Longrightarrow>
-       (2::nat) \<le> length (agra (graphI z') cockpit)" using assms by simp
-next show "\<And>(G::igraph) (I::infrastructure) (a::char list) (l::location) (l'::location)
-       I'::infrastructure.
-       z = I \<Longrightarrow>
-       z' = I' \<Longrightarrow>
-       G = graphI I \<Longrightarrow>
-       a @\<^bsub>G\<^esub> l \<Longrightarrow>
-       l \<in> nodes G \<Longrightarrow>
-       l' \<in> nodes G \<Longrightarrow>
-       a \<in> actors_graph (graphI I) \<Longrightarrow>
-       enables I l' (Actor a) move \<Longrightarrow>
-       I' = Infrastructure (move_graph_a a l l' (graphI I)) (delta I) \<Longrightarrow>
-       (2::nat) \<le> length (agra (graphI z') cockpit)"
-proof -
-fix G :: igraph and I :: infrastructure and a :: "char list" and l :: location and l' :: location and I' :: infrastructure
-  have f1: "UasI ''Eve'' ''Charly''"
-    using Eve_precipitating_event Insider_Eve Insider_def by force
-  obtain ccs :: "char list \<Rightarrow> char list" and ccsa :: "char list \<Rightarrow> char list" where
-    f2: "\<forall>cs csa. (\<not> UasI cs csa \<or> Actor cs = Actor csa \<and> (\<forall>csa csb. (csa = cs \<or> csb = cs \<or> Actor csa \<noteq> Actor csb) \<or> csa = csb)) \<and> (UasI cs csa \<or> Actor cs \<noteq> Actor csa \<or> (ccs cs \<noteq> cs \<and> ccsa cs \<noteq> cs \<and> Actor (ccs cs) = Actor (ccsa cs)) \<and> ccs cs \<noteq> ccsa cs)"
-    using UasI_def by moura
-  have "''Bob'' @\<^bsub>graphI (Infrastructure ex_graph local_policies)\<^esub> Location 2"
-    using Airplane_not_in_danger_init_def cockpit_def test_graph_atI by force
-  then have "Actor ''Bob'' = Actor ''Eve''"
-    using Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def 
-    sorry (* by blast *)
-  then show "2 \<le> length (agra (graphI z') cockpit)"
-    using f2 f1 by auto
-qed
-qed
-*)
+       2 \<le> length (agra (graphI z') cockpit) \<close> by simp
+  qed
 
 lemma two_person_inv1:
   assumes "(Airplane_not_in_danger_init,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
@@ -1258,8 +1312,7 @@ next show "\<And>(y::infrastructure) z::infrastructure.
        (Airplane_not_in_danger_init, y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
        (y, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y} \<Longrightarrow>
        (2::nat) \<le> length (agra (graphI y) cockpit) \<Longrightarrow> (2::nat) \<le> length (agra (graphI z) cockpit)"
-    by (rule two_person_inv, simp, assumption, rule same_nodes, assumption,
-          rule sym, rule init_state_policy, assumption+)
+  by (rule two_person_inv, simp, assumption, rule same_nodes, assumption, rule init_state_policy, assumption+)
 qed
 
 text \<open>The version of @{text \<open>two_person_inv\<close>} above, that we need, uses cardinality of lists of 
@@ -1880,27 +1933,167 @@ next show "Airplane_not_in_danger_init \<in> AG {x::infrastructure. global_polic
 qed
 qed
 
+(***** Generalisation (not possible in MC): 
+       for any policy that implies the 2-person-rule the airplane is safe ****)
+(* Generalisation of two_person_set_inv: if an initial state I fulfills
+the 2-person-rule, then   state transition preserves the 2-person-inv. This is now for the
+Gen_policy below. *)
+(* The following can only be shown if there is a policy delta I0 that entails that
+   there are *)
+lemma two_person_inv_gen_one: 
+      "z \<rightarrow>\<^sub>n z'
+     \<Longrightarrow> (2::nat) \<le> length (agra (graphI z) cockpit)
+     \<Longrightarrow> nodes(graphI z) = nodes(graphI I0)
+     \<Longrightarrow> delta(I0) = delta z
+     \<Longrightarrow> (I0, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
+    \<Longrightarrow> (2::nat) \<le> length (agra (graphI z') cockpit)" 
+proof (erule state_transition_in.cases, simp, subgoal_tac "l' = cabin \<or> l' = door \<or> l' = cockpit", erule disjE, simp)
+  show \<open>\<And>G I a l l' I'.
+       2 \<le> length (agra (graphI I) cockpit) \<Longrightarrow>
+       nodes (graphI I) = nodes (graphI I0) \<Longrightarrow>
+       delta I0 = delta I \<Longrightarrow>
+       (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+       z = I \<Longrightarrow>
+       z' = Infrastructure (move_graph_a a l cabin (graphI I)) (delta I) \<Longrightarrow>
+       G = graphI I \<Longrightarrow>
+       a @\<^bsub>graphI I\<^esub> l \<Longrightarrow>
+       l \<in> nodes (graphI I0) \<Longrightarrow>
+       cabin \<in> nodes (graphI I0) \<Longrightarrow>
+       a \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I cabin (Actor a) move \<Longrightarrow>
+       I' = Infrastructure (move_graph_a a l cabin (graphI I)) (delta I) \<Longrightarrow>
+       l' = cabin \<Longrightarrow> 2 \<le> length (agra (move_graph_a a l cabin (graphI I)) cockpit)\<close>
+       apply (subgoal_tac "delta I = local_policies_four_eyes")
+       apply (simp add: enables_def local_policies_four_eyes_def)
+proof -
+  fix G :: igraph and I :: infrastructure and a :: "char list" and l :: location and l' :: location and I' :: infrastructure
+  assume a1: "\<exists>x\<in>if cabin = cockpit then {(\<lambda>x. (\<exists>n. n @\<^bsub>graphI I\<^esub> cockpit \<and> Actor n = x) \<and> 2 \<le> length (agra (graphI I) cabin) \<and> (\<forall>h\<in>set (agra (graphI I) cabin). h \<in> airplane_actors), {put}), (\<lambda>x. \<exists>n. n @\<^bsub>graphI I\<^esub> cabin \<and> Actor n = x \<and> has (graphI I) (x, ''PIN'') \<and> isin (graphI I) door ''norm'', {move})} else if cabin = door then {(\<lambda>x. (\<exists>n. n @\<^bsub>graphI I\<^esub> cockpit \<and> Actor n = x) \<and> 3 \<le> length (agra (graphI I) cockpit), {move})} else if cabin = cabin then {(\<lambda>x. (\<exists>n. n @\<^bsub>graphI I\<^esub> door \<and> Actor n = x) \<and> 3 \<le> length (agra (graphI I) cockpit), {move})} else {}. case x of (p, e) \<Rightarrow> move \<in> e \<and> p (Actor a)"
+  assume a2: "2 \<le> length (agra (graphI I) cockpit)"
+  obtain pp :: "(actor \<Rightarrow> bool) \<times> action set" where
+    f3: "pp \<in> (if cabin = cockpit then {(\<lambda>a. (\<exists>cs. cs @\<^bsub>graphI I\<^esub> cockpit \<and> Actor cs = a) \<and> 2 \<le> length (agra (graphI I) cabin) \<and> (\<forall>cs. cs \<in> set (agra (graphI I) cabin) \<longrightarrow> cs \<in> airplane_actors), {put}), (\<lambda>a. \<exists>cs. cs @\<^bsub>graphI I\<^esub> cabin \<and> Actor cs = a \<and> has (graphI I) (a, ''PIN'') \<and> isin (graphI I) door ''norm'', {move})} else if cabin = door then {(\<lambda>a. (\<exists>cs. cs @\<^bsub>graphI I\<^esub> cockpit \<and> Actor cs = a) \<and> 3 \<le> length (agra (graphI I) cockpit), {move})} else {(\<lambda>a. (\<exists>cs. cs @\<^bsub>graphI I\<^esub> door \<and> Actor cs = a) \<and> 3 \<le> length (agra (graphI I) cockpit), {move})}) \<and> (case pp of (p, A) \<Rightarrow> move \<in> A \<and> p (Actor a))"
+    using a1 by meson
+  have f4: "\<forall>n css cs. \<not> Suc n \<le> length css \<or> n \<le> length (del (cs::char list) css)"
+    by (meson del_sort)
+  have f5: "cabin \<noteq> cockpit"
+    by (simp add: cabin_def cockpit_def)
+  have f6: "pp = (\<lambda>a. (\<exists>cs. cs @\<^bsub>graphI I\<^esub> door \<and> Actor cs = a) \<and> 3 \<le> length (agra (graphI I) cockpit), {move}) \<longrightarrow> move \<in> {move} \<and> (\<exists>cs. cs @\<^bsub>graphI I\<^esub> door \<and> Actor cs = Actor a) \<and> 3 \<le> length (agra (graphI I) cockpit)"
+    using f3 by blast
+  { assume "pp \<notin> {(\<lambda>a. (\<exists>cs. cs @\<^bsub>graphI I\<^esub> cockpit \<and> Actor cs = a) \<and> 3 \<le> length (agra (graphI I) cockpit), {move})}"
+    then have "move_graph_a a l cabin (graphI I) = Lgraph (gra (graphI I)) ((agra (graphI I)) (l := del a (agra (graphI I) l), cabin := a # agra (graphI I) cabin)) (cgra (graphI I)) (lgra (graphI I)) \<longrightarrow> 3 \<le> length (agra (graphI I) cockpit) \<and> move_graph_a a l cabin (graphI I) = Lgraph (gra (graphI I)) ((agra (graphI I)) (l := del a (agra (graphI I) l), cabin := a # agra (graphI I) cabin)) (cgra (graphI I)) (lgra (graphI I))"
+      using f6 f5 f3 by (meson bex_empty insertE) }
+  then have "move_graph_a a l cabin (graphI I) = Lgraph (gra (graphI I)) ((agra (graphI I)) (l := del a (agra (graphI I) l), cabin := a # agra (graphI I) cabin)) (cgra (graphI I)) (lgra (graphI I)) \<longrightarrow> 3 \<le> length (agra (graphI I) cockpit) \<and> move_graph_a a l cabin (graphI I) = Lgraph (gra (graphI I)) ((agra (graphI I)) (l := del a (agra (graphI I) l), cabin := a # agra (graphI I) cabin)) (cgra (graphI I)) (lgra (graphI I))"
+    using f3 by blast
+  then show "2 \<le> length (agra (move_graph_a a l cabin (graphI I)) cockpit)"
+    using f4 a2 move_graph_a_def by auto
+next show \<open>\<And>G I a l l' I'.
+       2 \<le> length (agra (graphI I) cockpit) \<Longrightarrow>
+       nodes (graphI I) = nodes (graphI I0) \<Longrightarrow>
+       delta I0 = delta I \<Longrightarrow>
+       (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+       z = I \<Longrightarrow>
+       z' = Infrastructure (move_graph_a a l cabin (graphI I)) (delta I) \<Longrightarrow>
+       G = graphI I \<Longrightarrow>
+       a @\<^bsub>graphI I\<^esub> l \<Longrightarrow>
+       l \<in> nodes (graphI I0) \<Longrightarrow>
+       cabin \<in> nodes (graphI I0) \<Longrightarrow>
+       a \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I cabin (Actor a) move \<Longrightarrow>
+       I' = Infrastructure (move_graph_a a l cabin (graphI I)) (delta I) \<Longrightarrow>
+       l' = cabin \<Longrightarrow> delta I = local_policies_four_eyes\<close>
+  sorry
+(*
+apply (erule state_transition_in.cases)
+     apply simp
+     apply (subgoal_tac "l' = cabin \<or> l' = door \<or> l' = cockpit")
+      apply (erule disjE)
+       apply simp
+       apply (subgoal_tac "delta Ia = local_policies_four_eyes")
+        apply (simp add: enables_def local_policies_four_eyes_def)
+        apply (erule bexE)
+  apply (unfold local_policies_four_eyes_def)
+apply (case_tac x)
+        apply simp
+  apply (subgoal_tac "(aa, b)
+       \<in> {(\<lambda>x. (\<exists>n. n @\<^bsub>graphI Ia\<^esub> door \<and> Actor n = x) \<and> 3 \<le> length (agra (graphI Ia) cockpit), {move})}")
+         apply (subgoal_tac "3 \<le> length (agra (graphI Ia) cockpit)")
+          prefer 2
+  apply simp
+          apply (simp add: move_graph_a_def)
+  apply (metis (no_types, lifting) cabin_def cockpit_def del_sort location.inject numeral_2_eq_2 numeral_3_eq_3)
+  apply (simp add: cabin_def cockpit_def door_def)
+  apply simp
+(* *)
+  apply (erule disjE)
+       apply simp
+       apply (subgoal_tac "delta I = local_policies_four_eyes")
+        apply (simp add: enables_def local_policies_four_eyes_def)
+        apply (erule bexE)
+  apply (unfold Airplane_not_in_danger_init_def local_policies_four_eyes_def)
+        apply simp
+         apply (case_tac x)
+        apply simp
+  apply (subgoal_tac "(aa,b) \<in>
+{(\<lambda>x. (\<exists>n. n @\<^bsub>graphI I\<^esub> cockpit \<and> Actor n = x) \<and>
+                           3 \<le> length (agra (graphI I) cockpit),
+                       {move})}")
+         apply (subgoal_tac "3 \<le> length (agra (graphI I) cockpit)")
+          prefer 2
+  apply simp
+          apply (simp add: move_graph_a_def)
+  apply (metis (no_types, lifting) One_nat_def cockpit_def del_sort door_def location.inject numeral_2_eq_2 numeral_3_eq_3)
+  apply (simp add: cabin_def cockpit_def door_def)
+       apply simp
+(* l' = cockpit *)
+       apply simp
+       apply (subgoal_tac "delta I = local_policies_four_eyes")
+        apply (simp add: enables_def local_policies_four_eyes_def)
+        apply (erule exE)
+  apply (unfold Airplane_not_in_danger_init_def local_policies_four_eyes_def)
+        apply simp
+       apply (simp add: move_graph_a_def)
+      apply simp
+  using not_enableI apply force
+(* get *)
+  apply simp
+(* *)
+   apply simp
+(* *)
+  by simp
+*)
+  oops
+
+lemma two_person_gen_inv1:
+  assumes "(I0,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
+      and "(2::nat) \<le> length (agra (graphI I0) cockpit)"
+      and "\<forall> I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow>  2 \<le> length (agra (graphI I) cockpit) \<longrightarrow>  2 \<le> length (agra (graphI I') cockpit)"
+  shows "(2::nat) \<le> length (agra (graphI z) cockpit)" 
+proof (insert assms, erule rtrancl_induct) 
+  show "2 \<le> length (agra (graphI I0) cockpit) \<Longrightarrow> (2::nat) \<le> length (agra (graphI I0) cockpit)" .
+next show \<open>\<And>y z. 2 \<le> length (agra (graphI I0) cockpit) \<Longrightarrow>
+           (I0, y) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+           (y, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y} \<Longrightarrow> 2 \<le> length (agra (graphI y) cockpit) \<Longrightarrow> 2 \<le> length (agra (graphI z) cockpit) \<close>
+    using assms(3) by auto
+qed
+(*
 lemma two_person_set_inv_gen: 
   assumes "(I, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
      and "(2::nat) \<le> card (set (agra (graphI I) cockpit))"
+     and "\<forall>a. (\<forall>l l'. ((a @\<^bsub>graphI I\<^esub> l) \<and> (a @\<^bsub>graphI I\<^esub> l')) \<longrightarrow> l = l') \<and> (\<forall>l. nodup a (agra (graphI I) l))"
     shows "(2::nat) \<le> card (set (agra (graphI z) cockpit))"
- proof (insert assms, erule rtrancl_induct)
-   show \<open>2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit))\<close>
-     .
- next show \<open>\<And>y z. 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
-           (I, y) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
-           (y, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y} \<Longrightarrow>
-           2 \<le> card (set (agra (graphI y) cockpit)) \<Longrightarrow> 2 \<le> card (set (agra (graphI z) cockpit)) \<close>
-     sorry
-(* by (metis Airplane_not_in_danger_init_def Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def graphI.simps rtrancl.rtrancl_refl tp_imp_control)
+proof -
+  have a: "card (set (agra (graphI z) cockpit)) = length(agra (graphI z) cockpit)"
+    by (meson actors_unique_loc_step assms(1) assms(3) no_dup_set_list_num_eq)
+  show ?thesis
+    using a assms(1) assms(2) card_length order.trans two_person_gen_inv1 by fastforce 
+qed
 *)
- qed
-
 
 theorem Gen_policy: 
   assumes "(I0, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
      and "(2::nat) \<le> card (set (agra (graphI I0) cockpit))"
+      and "\<forall> I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow>  2 \<le> length (agra (graphI I) cockpit) \<longrightarrow>  2 \<le> length (agra (graphI I') cockpit)"
    shows "Kripke  { I. I0 \<rightarrow>\<^sub>n* I } {I0} \<turnstile> AG {x. global_policy x ''Eve''}"
+
   sorry
 (*  by (metis Airplane_not_in_danger_init_def Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def graphI.simps rtrancl.intros(1) tp_imp_control)
 *)
