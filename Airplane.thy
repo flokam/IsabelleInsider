@@ -1869,8 +1869,6 @@ lemma Fend_2: "(Airplane_not_in_danger_init,I) \<in> {(x::infrastructure, y::inf
   by (insert cockpit_foe_control, simp add: foe_control_def, drule_tac x = I in bspec,
          simp add: Air_tp_Kripke_def Air_tp_states_def state_transition_in_refl_def, 
          erule mp, erule tp_imp_control)
-(*  by (insert cockpit_foe_control, simp add: foe_control_def, drule_tac x = I in spec,
-      erule mp, erule tp_imp_control) *)
 
 theorem Four_eyes_no_danger: "Air_tp_Kripke \<turnstile> AG ({x. global_policy x ''Eve''})"
 proof (simp add: Air_tp_Kripke_def check_def, rule conjI)
@@ -1940,6 +1938,8 @@ the 2-person-rule, then   state transition preserves the 2-person-inv. This is n
 Gen_policy below. *)
 (* The following can only be shown if there is a policy delta I0 that entails that
    there are *)
+
+(*
 lemma two_person_inv_gen_one: 
       "z \<rightarrow>\<^sub>n z'
      \<Longrightarrow> (2::nat) \<le> length (agra (graphI z) cockpit)
@@ -2061,19 +2061,23 @@ apply (case_tac x)
   by simp
 *)
   oops
+*)
 
 lemma two_person_gen_inv1:
   assumes "(I0,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
       and "(2::nat) \<le> length (agra (graphI I0) cockpit)"
-      and "\<forall> I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow>  2 \<le> length (agra (graphI I) cockpit) \<longrightarrow>  2 \<le> length (agra (graphI I') cockpit)"
-  shows "(2::nat) \<le> length (agra (graphI z) cockpit)" 
+      and "\<forall> I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow>  2 \<le> length (agra (graphI I) cockpit) 
+              \<longrightarrow>  2 \<le> length (agra (graphI I') cockpit)"
+    shows "(2::nat) \<le> length (agra (graphI z) cockpit)" 
 proof (insert assms, erule rtrancl_induct) 
   show "2 \<le> length (agra (graphI I0) cockpit) \<Longrightarrow> (2::nat) \<le> length (agra (graphI I0) cockpit)" .
 next show \<open>\<And>y z. 2 \<le> length (agra (graphI I0) cockpit) \<Longrightarrow>
            (I0, y) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
-           (y, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y} \<Longrightarrow> 2 \<le> length (agra (graphI y) cockpit) \<Longrightarrow> 2 \<le> length (agra (graphI z) cockpit) \<close>
+           (y, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y} \<Longrightarrow> 2 \<le> length (agra (graphI y) cockpit) \<Longrightarrow> 
+           2 \<le> length (agra (graphI z) cockpit)\<close>
     using assms(3) by auto
 qed
+
 (*
 lemma two_person_set_inv_gen: 
   assumes "(I, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
@@ -2091,12 +2095,40 @@ qed
 theorem Gen_policy: 
   assumes "(I0, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
      and "(2::nat) \<le> card (set (agra (graphI I0) cockpit))"
-      and "\<forall> I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow>  2 \<le> length (agra (graphI I) cockpit) \<longrightarrow>  2 \<le> length (agra (graphI I') cockpit)"
-   shows "Kripke  { I. I0 \<rightarrow>\<^sub>n* I } {I0} \<turnstile> AG {x. global_policy x ''Eve''}"
+      and "\<forall> I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow>  2 \<le> length (agra (graphI I) cockpit) 
+              \<longrightarrow>  2 \<le> length (agra (graphI I') cockpit)"
+   shows "Kripke  { I. I0 \<rightarrow>\<^sub>n* I } {I0} \<turnstile> AG {x. global_policy x ''Eve''}" using assms
+proof (simp add: check_def state_transition_in_refl_def)
+  show \<open>(I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+    2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
+    \<forall>I I'. ((I \<rightarrow>\<^sub>n I') \<longrightarrow> (2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit))) \<Longrightarrow>
+    I0 \<in> AG {x. global_policy x ''Eve''}\<close>
+  proof (unfold AG_def, simp add: gfp_def,
+         rule_tac x = "{(x :: infrastructure) \<in> { I. I0 \<rightarrow>\<^sub>n* I }. ~(''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}" in exI,
+         rule conjI)
+    show \<open>(I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+    2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
+    \<forall>I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit) \<Longrightarrow>
+    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> {x. global_policy x ''Eve''}\<close>
+      sorry
+  next show \<open>(I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+    2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
+    \<forall>I I'. (I \<rightarrow>\<^sub>n I') \<longrightarrow> (2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit)) \<Longrightarrow>
+    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}
+    \<subseteq> AX {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)} \<and>
+    I0 \<in> {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}\<close>
+proof -
+  assume a1: "\<forall>I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit)"
+  have "2 \<le> length (agra (graphI (Infrastructure ex_graph local_policies)) cockpit)"
+  using Airplane_not_in_danger_init_def two_person_inv1 by force
+then have "2 \<le> length (agra (graphI (Infrastructure aid_graph local_policies)) cockpit)"
+  using a1 Airplane_in_danger_def Airplane_scenario_def state_transition_in_refl_def step_allr two_person_gen_inv1 by blast
+then show ?thesis
+  by (simp add: aid_graph_def)
+qed
+qed
+qed
 
-  sorry
-(*  by (metis Airplane_not_in_danger_init_def Airplane_scenario_def airplane.cockpit_foe_control airplane_axioms cockpit_def ex_inv3 global_policy_def graphI.simps rtrancl.intros(1) tp_imp_control)
-*)
 end
 
 subsection \<open>Locale interpretation\<close>
