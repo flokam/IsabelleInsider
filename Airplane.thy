@@ -2110,7 +2110,15 @@ proof (simp add: check_def state_transition_in_refl_def)
     2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
     \<forall>I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit) \<Longrightarrow>
     {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> {x. global_policy x ''Eve''}\<close>
-      sorry
+proof -
+  assume a1: "\<forall>I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit)"
+  have "2 \<le> length (agra (graphI (Infrastructure ex_graph local_policies)) cockpit)"
+    using ex_graph_def by force
+  then have "2 \<le> length (agra (graphI (Infrastructure aid_graph local_policies)) cockpit)"
+    using a1 Airplane_in_danger_def Airplane_scenario_def state_transition_in_refl_def step_allr two_person_gen_inv1 by presburger
+  then show ?thesis
+    by (simp add: aid_graph_def)
+qed
   next show \<open>(I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
     2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
     \<forall>I I'. (I \<rightarrow>\<^sub>n I') \<longrightarrow> (2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit)) \<Longrightarrow>
