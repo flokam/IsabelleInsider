@@ -1999,6 +1999,41 @@ qed
 qed
 qed
 
+theorem Gen_policy': 
+  assumes "(2::nat) \<le> card (set (agra (graphI I0) cockpit))"
+      and "\<forall> I I'. (I \<rightarrow>\<^sub>n I') \<longrightarrow>  2 \<le> length (agra (graphI I) cockpit) 
+              \<longrightarrow>  2 \<le> length (agra (graphI I') cockpit)"
+   shows "Kripke  { I. I0 \<rightarrow>\<^sub>n* I } {I0} \<turnstile> AG {x. global_policy x ''Eve''}" using assms
+proof (simp add: check_def state_transition_in_refl_def)
+  show \<open>2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
+    \<forall>I I'. ((I \<rightarrow>\<^sub>n I') \<longrightarrow> (2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit))) \<Longrightarrow>
+    I0 \<in> AG {x. global_policy x ''Eve''}\<close>
+  proof (unfold AG_def, simp add: gfp_def,
+         rule_tac x = "{(x :: infrastructure) \<in> { I. I0 \<rightarrow>\<^sub>n* I }. ~(''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}" in exI,
+         rule conjI)
+    show \<open>2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
+    \<forall>I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit) \<Longrightarrow>
+    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> {x. global_policy x ''Eve''}\<close>
+    proof -
+      assume a1: "\<forall>I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit)"
+  have "2 \<le> length (agra (graphI (Infrastructure ex_graph local_policies)) cockpit)"
+    by (simp add: ex_graph_def)
+  then show ?thesis
+      using a1 Airplane_getting_in_danger0_def Airplane_scenario_def aid_graph0_def step0 by force
+  qed
+  next show \<open> 2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
+    \<forall>I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit) \<Longrightarrow>
+    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> AX {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<and>
+    I0 \<in> {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit}\<close>
+      using Airplane_getting_in_danger0_def Airplane_scenario_def aid_graph0_def ex_graph_def step0 by force
+  qed
+qed
+
+
+lemma "Air_tp_Kripke \<turnstile> AG ({x. global_policy x ''Eve''})"
+  apply (unfold Air_tp_Kripke_def Air_tp_states_def, rule Gen_policy)
+  oops
+
 end
 
 subsection \<open>Locale interpretation\<close>
