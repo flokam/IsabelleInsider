@@ -1108,7 +1108,28 @@ lemma "\<not> (foe_control cockpit put Air_tp_Kripke)"
       list.inject singletonI test_graph_atI) *)
   
   text \<open>The following invariant shows that the number of staff in the cockpit is never below 2.\<close>
-lemma two_person_inv: 
+lemma two_person_inv0: 
+      "z \<rightarrow>\<^sub>n z' \<Longrightarrow> delta z = delta z'
+     \<Longrightarrow> (2::nat) \<le> length (agra (graphI z) cockpit)
+    \<Longrightarrow> (2::nat) \<le> length (agra (graphI z') cockpit)" 
+proof (erule state_transition_in.cases, subgoal_tac "l' = cabin \<or> l' = door \<or> l' = cockpit", erule disjE)
+  show \<open>\<And>G I a l l' I'.
+       delta z = delta z' \<Longrightarrow>
+       2 \<le> length (agra (graphI z) cockpit) \<Longrightarrow>
+       z = I \<Longrightarrow>
+       z' = I' \<Longrightarrow>
+       G = graphI I \<Longrightarrow>
+       a @\<^bsub>G\<^esub> l \<Longrightarrow>
+       l \<in> nodes G \<Longrightarrow>
+       l' \<in> nodes G \<Longrightarrow>
+       a \<in> actors_graph (graphI I) \<Longrightarrow>
+       enables I l' (Actor a) move \<Longrightarrow>
+       I' = Infrastructure (move_graph_a a l l' (graphI I)) (delta I) \<Longrightarrow>
+       l' = cabin \<Longrightarrow> 2 \<le> length (agra (graphI z') cockpit)\<close>
+    apply (simp add: move_graph_a_def)
+    oops
+
+lemma two_person_inv:
       "z \<rightarrow>\<^sub>n z'
      \<Longrightarrow> (2::nat) \<le> length (agra (graphI z) cockpit)
      \<Longrightarrow> nodes(graphI z) = nodes(graphI Airplane_not_in_danger_init)
@@ -1931,6 +1952,7 @@ next show "Airplane_not_in_danger_init \<in> AG {x::infrastructure. global_polic
 qed
 qed
 
+
 (***** Generalisation (not possible in MC): 
        for any policy that implies the 2-person-rule the airplane is safe ****)
 (* Generalisation of two_person_set_inv: if an initial state I fulfills
@@ -1954,6 +1976,35 @@ next show \<open>\<And>y z. 2 \<le> length (agra (graphI I0) cockpit) \<Longrigh
     using assms(3) by auto
 qed
 
+lemma  Gen_Fend: "foe_control cockpit put (Kripke { I. I0 \<rightarrow>\<^sub>n* I } {I0}) \<Longrightarrow>
+          (I0, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+         \<not> enables z cockpit (Actor ''Eve'') put"
+  apply (simp add: foe_control_def)
+(*
+  by (insert cockpit_foe_control, simp add: foe_control_def, drule_tac x = I in bspec,
+         simp add: Air_tp_Kripke_def Air_tp_states_def state_transition_in_refl_def, 
+         erule mp, erule tp_imp_control)
+*)
+
+
+theorem Gen_policy: 
+  assumes "(2::nat) \<le> card (set (agra (graphI I0) cockpit))"
+      and "\<forall> I. (I0, I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
+              \<longrightarrow>  2 \<le> length (agra (graphI I') cockpit)"
+    shows "Kripke  { I. I0 \<rightarrow>\<^sub>n* I } {I0} \<turnstile> AG {x. global_policy x ''Eve''}" using assms
+proof (simp add: check_def state_transition_in_refl_def)
+  show \<open>2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
+    (\<exists>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit) \<Longrightarrow>
+    I0 \<in> AG {x. global_policy x ''Eve''}\<close>
+  proof (unfold AG_def, simp add: gfp_def,
+         rule_tac x = "{(x :: infrastructure) \<in> { I. I0 \<rightarrow>\<^sub>n* I }. ~(''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}" in exI,
+         rule conjI)
+    show \<open>2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
+    (\<exists>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit) \<Longrightarrow>
+    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> {x. global_policy x ''Eve''}\<close>
+      sorry
+
+(*
 theorem Gen_policy: 
   assumes "(I0, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
      and "(2::nat) \<le> card (set (agra (graphI I0) cockpit))"
@@ -2029,10 +2080,17 @@ proof (simp add: check_def state_transition_in_refl_def)
   qed
 qed
 
+lemma state_transition_in_refl_refl: "(x, x) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*"
+  by (rule Transitive_Closure.rtrancl.rtrancl_refl)
 
 lemma "Air_tp_Kripke \<turnstile> AG ({x. global_policy x ''Eve''})"
   apply (unfold Air_tp_Kripke_def Air_tp_states_def, rule Gen_policy)
+    apply (rule state_transition_in_refl_refl)
+  apply (simp add: two_person_set_inv)
+
   oops
+*)
+
 
 end
 
