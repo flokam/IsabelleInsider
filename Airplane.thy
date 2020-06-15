@@ -2044,13 +2044,15 @@ proof (simp add: check_def state_transition_in_refl_def)
     show \<open>foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0}) \<Longrightarrow>
     \<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
     \<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors) \<Longrightarrow>
-    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> {x. global_policy x ''Eve''}\<close>
-      sorry
+    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)} \<subseteq> {x. global_policy x ''Eve''}\<close>
+      by (unfold global_policy_def, simp add: airplane_actors_def, rule subsetI,
+          drule CollectD, rule CollectI, erule conjE, rule Gen_Fend,
+          (simp add: state_transition_in_refl_def airplane_actors_def)+)
   next show \<open>foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0}) \<Longrightarrow>
     \<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
     \<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors) \<Longrightarrow>
-    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> AX {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<and>
-    I0 \<in> {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit}\<close>
+    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)} \<subseteq> AX {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)} \<and>
+    I0 \<in> {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}\<close>
       sorry
   qed
 qed

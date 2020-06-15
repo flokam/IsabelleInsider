@@ -351,11 +351,11 @@ lemma move_graph_eq: "move_graph_a a l l g = g"
 
 text \<open>Some useful properties about the invariance of the nodes, the actors, and the policy 
    with respect to the  state transition are provided.\<close> 
-lemma delta_invariant: "\<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow>  delta(z) = delta(z')"    
+lemma delta_invariant: "\<forall> z z'. (z \<rightarrow>\<^sub>n z') \<longrightarrow>  delta(z) = delta(z')"    
   by (clarify, erule state_transition_in.cases, simp+)
 
 lemma init_state_policy0: 
-  assumes "\<forall> z z'. z \<rightarrow>\<^sub>n z' \<longrightarrow>  delta(z) = delta(z')"
+  assumes "\<forall> z z'. (z \<rightarrow>\<^sub>n z') \<longrightarrow>  delta(z) = delta(z')"
       and "(x,y) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*"
     shows "delta(x) = delta(y)"
 proof -
