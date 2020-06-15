@@ -1961,28 +1961,11 @@ Gen_policy below. *)
 (* The following can only be shown if there is a policy delta I0 that entails that
    there are *)
 
-lemma two_person_gen_inv1:
-  assumes "(I0,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
-      and "(2::nat) \<le> length (agra (graphI I0) cockpit)"
-      and "\<forall> I I'. (I \<rightarrow>\<^sub>n I') \<longrightarrow>  2 \<le> length (agra (graphI I) cockpit) 
-              \<longrightarrow>  2 \<le> length (agra (graphI I') cockpit)"
-    shows "(2::nat) \<le> length (agra (graphI z) cockpit)" 
-proof (insert assms, erule rtrancl_induct) 
-  show "2 \<le> length (agra (graphI I0) cockpit) \<Longrightarrow> (2::nat) \<le> length (agra (graphI I0) cockpit)" .
-next show \<open>\<And>y z. 2 \<le> length (agra (graphI I0) cockpit) \<Longrightarrow>
-           (I0, y) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
-           (y, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y} \<Longrightarrow> 2 \<le> length (agra (graphI y) cockpit) \<Longrightarrow> 
-           2 \<le> length (agra (graphI z) cockpit)\<close>
-    using assms(3) by auto
-qed
-
-
 lemma Gen_Eve_not_in_cockpit: "(I0, I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
     (\<forall> z. (I0 ,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow>
     (\<forall> h::identity \<in> set (agra (graphI z) cockpit). h \<in> airplane_actors)) \<Longrightarrow>
        x \<in> set (agra (graphI I) cockpit) \<Longrightarrow> x \<noteq> ''Eve''"
   using ex_inv3 global_policy_def by blast
-
 
 lemma Gen_tp_imp_control:
   assumes "(I0,I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*"
@@ -1998,16 +1981,17 @@ proof -
     proof (rule notI)
       assume a7: " \<forall>x::char list\<in>set (agra (graphI I) cockpit). Actor x = Actor ''Eve''"
       have a5: "\<forall>x::char list\<in>set (agra (graphI I) cockpit). x = ''Charly''"
-        apply (insert assms a0 a7)
-        apply (rule ballI)
-        apply (drule_tac x = x in bspec, assumption)
-        apply (subgoal_tac  "x \<noteq> ''Eve''")
-        apply (insert Insider_Eve, unfold Insider_def, (drule mp), 
-               rule Eve_precipitating_event, simp add: UasI_def)
-        using Gen_Eve_not_in_cockpit by blast
-         (* by (insert assms a0 a7, rule ballI, drule_tac x = x in bspec, assumption,
-            subgoal_tac "x \<noteq> ''Eve''", insert Insider_Eve, unfold Insider_def, (drule mp), 
-               rule Eve_precipitating_event, simp add: UasI_def, erule Eve_not_in_cockpit) *)
+      proof -
+        have f1: "''Eve'' \<notin> set (agra (graphI I) cockpit)"
+          using assms(1) assms(3) ex_inv3 global_policy_def by blast
+        obtain ccs :: "char list \<Rightarrow> char list" and ccsa :: "char list \<Rightarrow> char list" where
+          "\<forall>cs csa. (\<not> UasI cs csa \<or> Actor cs = Actor csa \<and> (\<forall>csa csb. csa = cs \<or> csb = cs \<or> Actor csa \<noteq> Actor csb \<or> csa = csb)) \<and> (UasI cs csa \<or> Actor cs \<noteq> Actor csa \<or> ccs cs \<noteq> cs \<and> ccsa cs \<noteq> cs \<and> Actor (ccs cs) = Actor (ccsa cs) \<and> ccs cs \<noteq> ccsa cs)"
+          using UasI_def by moura
+        then have "Actor ''Eve'' = Actor ''Charly'' \<and> (\<forall>cs csa. cs = ''Eve'' \<or> csa = ''Eve'' \<or> Actor cs \<noteq> Actor csa \<or> cs = csa)"
+          using Eve_precipitating_event Insider_Eve Insider_def by auto
+  then show ?thesis
+    using f1 a7 by auto
+      qed
       have a4: "set (agra (graphI I) cockpit) = {''Charly''}"
         by (rule equalityI, rule subsetI, insert a5, simp,
             rule subsetI, simp, rule Set_all_unique, insert a0, force, rule a5)
@@ -2038,13 +2022,8 @@ lemma  Gen_Fend: "foe_control cockpit put (Kripke { I. I0 \<rightarrow>\<^sub>n*
    apply assumption
   apply (rule Gen_tp_imp_control)
 by assumption+
-(*
-  by (insert cockpit_foe_control, simp add: foe_control_def, drule_tac x = I in bspec,
-         simp add: Air_tp_Kripke_def Air_tp_states_def state_transition_in_refl_def, 
-         erule mp, erule tp_imp_control)
-*)
 
-(* (2::nat) \<le> card (set (agra (graphI I0) cockpit)) seems an unnecessary assumption since it is
+(* (2::nat) \<le> card (set (agra (graphI I0) cockpit)) is an unnecessary assumption since it is
 entailed in (\<forall> I. (I0, I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
               \<longrightarrow>  2 \<le> card (set (agra (graphI I) cockpit))) because of reflexivity  *)
 theorem Gen_policy: 
@@ -2075,94 +2054,6 @@ proof (simp add: check_def state_transition_in_refl_def)
       sorry
   qed
 qed
-
-(*
-theorem Gen_policy: 
-  assumes "(I0, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*" 
-     and "(2::nat) \<le> card (set (agra (graphI I0) cockpit))"
-      and "\<forall> I I'. (I \<rightarrow>\<^sub>n I') \<longrightarrow>  2 \<le> length (agra (graphI I) cockpit) 
-              \<longrightarrow>  2 \<le> length (agra (graphI I') cockpit)"
-   shows "Kripke  { I. I0 \<rightarrow>\<^sub>n* I } {I0} \<turnstile> AG {x. global_policy x ''Eve''}" using assms
-proof (simp add: check_def state_transition_in_refl_def)
-  show \<open>(I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
-    2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
-    \<forall>I I'. ((I \<rightarrow>\<^sub>n I') \<longrightarrow> (2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit))) \<Longrightarrow>
-    I0 \<in> AG {x. global_policy x ''Eve''}\<close>
-  proof (unfold AG_def, simp add: gfp_def,
-         rule_tac x = "{(x :: infrastructure) \<in> { I. I0 \<rightarrow>\<^sub>n* I }. ~(''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}" in exI,
-         rule conjI)
-    show \<open>(I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
-    2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
-    \<forall>I I'. (I \<rightarrow>\<^sub>n I') \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit) \<Longrightarrow>
-    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)} \<subseteq> {x. global_policy x ''Eve''}\<close>
-proof -
-  assume a1: "\<forall>I I'. (I \<rightarrow>\<^sub>n I') \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit)"
-  have "2 \<le> length (agra (graphI (Infrastructure ex_graph local_policies)) cockpit)"
-    using ex_graph_def by force
-  then have "2 \<le> length (agra (graphI (Infrastructure aid_graph local_policies)) cockpit)"
-    using a1 Airplane_in_danger_def Airplane_scenario_def state_transition_in_refl_def step_allr two_person_gen_inv1 by presburger
-  then show ?thesis
-    by (simp add: aid_graph_def)
-qed
-  next show \<open>(I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
-    2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
-    \<forall>I I'. (I \<rightarrow>\<^sub>n I') \<longrightarrow> (2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit)) \<Longrightarrow>
-    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}
-    \<subseteq> AX {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)} \<and>
-    I0 \<in> {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}\<close>
-proof -
-  assume a1: "\<forall>I I'. (I \<rightarrow>\<^sub>n I') \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit)"
-  have "2 \<le> length (agra (graphI (Infrastructure ex_graph local_policies)) cockpit)"
-  using Airplane_not_in_danger_init_def two_person_inv1 by force
-then have "2 \<le> length (agra (graphI (Infrastructure aid_graph local_policies)) cockpit)"
-  using a1 Airplane_in_danger_def Airplane_scenario_def state_transition_in_refl_def step_allr two_person_gen_inv1 by blast
-then show ?thesis
-  by (simp add: aid_graph_def)
-qed
-qed
-qed
-
-theorem Gen_policy': 
-  assumes "(2::nat) \<le> card (set (agra (graphI I0) cockpit))"
-      and "\<forall> I I'. (I \<rightarrow>\<^sub>n I') \<longrightarrow>  2 \<le> length (agra (graphI I) cockpit) 
-              \<longrightarrow>  2 \<le> length (agra (graphI I') cockpit)"
-   shows "Kripke  { I. I0 \<rightarrow>\<^sub>n* I } {I0} \<turnstile> AG {x. global_policy x ''Eve''}" using assms
-proof (simp add: check_def state_transition_in_refl_def)
-  show \<open>2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
-    \<forall>I I'. ((I \<rightarrow>\<^sub>n I') \<longrightarrow> (2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit))) \<Longrightarrow>
-    I0 \<in> AG {x. global_policy x ''Eve''}\<close>
-  proof (unfold AG_def, simp add: gfp_def,
-         rule_tac x = "{(x :: infrastructure) \<in> { I. I0 \<rightarrow>\<^sub>n* I }. ~(''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}" in exI,
-         rule conjI)
-    show \<open>2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
-    \<forall>I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit) \<Longrightarrow>
-    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> {x. global_policy x ''Eve''}\<close>
-    proof -
-      assume a1: "\<forall>I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit)"
-  have "2 \<le> length (agra (graphI (Infrastructure ex_graph local_policies)) cockpit)"
-    by (simp add: ex_graph_def)
-  then show ?thesis
-      using a1 Airplane_getting_in_danger0_def Airplane_scenario_def aid_graph0_def step0 by force
-  qed
-  next show \<open> 2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
-    \<forall>I I'. I \<rightarrow>\<^sub>n I' \<longrightarrow> 2 \<le> length (agra (graphI I) cockpit) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit) \<Longrightarrow>
-    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> AX {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<and>
-    I0 \<in> {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit}\<close>
-      using Airplane_getting_in_danger0_def Airplane_scenario_def aid_graph0_def ex_graph_def step0 by force
-  qed
-qed
-
-lemma state_transition_in_refl_refl: "(x, x) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*"
-  by (rule Transitive_Closure.rtrancl.rtrancl_refl)
-
-lemma "Air_tp_Kripke \<turnstile> AG ({x. global_policy x ''Eve''})"
-  apply (unfold Air_tp_Kripke_def Air_tp_states_def, rule Gen_policy)
-    apply (rule state_transition_in_refl_refl)
-  apply (simp add: two_person_set_inv)
-
-  oops
-*)
-
 
 end
 
