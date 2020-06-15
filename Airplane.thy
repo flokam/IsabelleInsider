@@ -1976,33 +1976,105 @@ next show \<open>\<And>y z. 2 \<le> length (agra (graphI I0) cockpit) \<Longrigh
     using assms(3) by auto
 qed
 
+
+lemma Gen_Eve_not_in_cockpit: "(I0, I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+    (\<forall> z. (I0 ,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow>
+    (\<forall> h::identity \<in> set (agra (graphI z) cockpit). h \<in> airplane_actors)) \<Longrightarrow>
+       x \<in> set (agra (graphI I) cockpit) \<Longrightarrow> x \<noteq> ''Eve''"
+  using ex_inv3 global_policy_def by blast
+
+
+lemma Gen_tp_imp_control:
+  assumes "(I0,I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*"
+      and  "\<forall> I. (I0, I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
+              \<longrightarrow>  2 \<le> card(set (agra (graphI I) cockpit))"
+      and "(\<forall> z. (I0 ,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow>
+    (\<forall> h::identity \<in> set (agra (graphI z) cockpit). h \<in> airplane_actors))"
+  shows "(? x :: identity.  (x @\<^bsub>graphI I\<^esub> cockpit) \<and> Actor x \<noteq> Actor ''Eve'')" 
+proof -
+  have a0: "(2::nat) \<le> card (set (agra (graphI I) cockpit))" using assms by simp
+  have a1: "is_singleton({''Charly''})" by (rule is_singletonI)
+  have a6: "\<not>(\<forall> x \<in> set(agra (graphI I) cockpit). (Actor x = Actor ''Eve''))"
+    proof (rule notI)
+      assume a7: " \<forall>x::char list\<in>set (agra (graphI I) cockpit). Actor x = Actor ''Eve''"
+      have a5: "\<forall>x::char list\<in>set (agra (graphI I) cockpit). x = ''Charly''"
+        apply (insert assms a0 a7)
+        apply (rule ballI)
+        apply (drule_tac x = x in bspec, assumption)
+        apply (subgoal_tac  "x \<noteq> ''Eve''")
+        apply (insert Insider_Eve, unfold Insider_def, (drule mp), 
+               rule Eve_precipitating_event, simp add: UasI_def)
+        using Gen_Eve_not_in_cockpit by blast
+         (* by (insert assms a0 a7, rule ballI, drule_tac x = x in bspec, assumption,
+            subgoal_tac "x \<noteq> ''Eve''", insert Insider_Eve, unfold Insider_def, (drule mp), 
+               rule Eve_precipitating_event, simp add: UasI_def, erule Eve_not_in_cockpit) *)
+      have a4: "set (agra (graphI I) cockpit) = {''Charly''}"
+        by (rule equalityI, rule subsetI, insert a5, simp,
+            rule subsetI, simp, rule Set_all_unique, insert a0, force, rule a5)
+      have a2: "(card((set (agra (graphI I) cockpit)) :: char list set)) = (1 :: nat)"
+         by (insert a1, unfold is_singleton_altdef, erule ssubst, insert a4, erule ssubst,
+             fold is_singleton_altdef, rule a1)
+      have a3: "(2 :: nat) \<le> (1 ::nat)" 
+         by (insert a0, insert a2, erule subst, assumption) 
+      show False
+        by (insert a5 a4 a3 a2, arith)
+    qed
+  show ?thesis  by (insert assms a0 a6, simp add: atI_def, blast)
+qed
+
 lemma  Gen_Fend: "foe_control cockpit put (Kripke { I. I0 \<rightarrow>\<^sub>n* I } {I0}) \<Longrightarrow>
           (I0, z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<Longrightarrow>
+          (\<forall> I. (I0, I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
+              \<longrightarrow>  2 \<le> card (set (agra (graphI I) cockpit))) \<Longrightarrow>
+          (\<forall> z. (I0 ,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow>
+    (\<forall> h::identity \<in> set (agra (graphI z) cockpit). h \<in> airplane_actors)) \<Longrightarrow>
          \<not> enables z cockpit (Actor ''Eve'') put"
   apply (simp add: foe_control_def)
+  apply (drule_tac x = z in spec)
+  apply (erule impE)
+   apply (simp add: state_transition_in_refl_def)
+  apply (drule mp)
+   defer
+   apply assumption
+  apply (rule Gen_tp_imp_control)
+by assumption+
 (*
   by (insert cockpit_foe_control, simp add: foe_control_def, drule_tac x = I in bspec,
          simp add: Air_tp_Kripke_def Air_tp_states_def state_transition_in_refl_def, 
          erule mp, erule tp_imp_control)
 *)
 
-
+(* (2::nat) \<le> card (set (agra (graphI I0) cockpit)) seems an unnecessary assumption since it is
+entailed in (\<forall> I. (I0, I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
+              \<longrightarrow>  2 \<le> card (set (agra (graphI I) cockpit))) because of reflexivity  *)
 theorem Gen_policy: 
-  assumes "(2::nat) \<le> card (set (agra (graphI I0) cockpit))"
-      and "\<forall> I. (I0, I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
-              \<longrightarrow>  2 \<le> length (agra (graphI I') cockpit)"
-    shows "Kripke  { I. I0 \<rightarrow>\<^sub>n* I } {I0} \<turnstile> AG {x. global_policy x ''Eve''}" using assms
+  "foe_control cockpit put (Kripke { I. I0 \<rightarrow>\<^sub>n* I } {I0}) \<Longrightarrow> 
+   (\<forall> I. (I0, I) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>*
+              \<longrightarrow>  2 \<le> card (set (agra (graphI I) cockpit))) \<Longrightarrow>
+   (\<forall> z. (I0 ,z) \<in> {(x::infrastructure, y::infrastructure). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow>
+    (\<forall> h::identity \<in> set (agra (graphI z) cockpit). h \<in> airplane_actors)) \<Longrightarrow>
+    Kripke  { I. I0 \<rightarrow>\<^sub>n* I } {I0} \<turnstile> AG {x. global_policy x ''Eve''}" 
 proof (simp add: check_def state_transition_in_refl_def)
-  show \<open>2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
-    (\<exists>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit) \<Longrightarrow>
+  show \<open>foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0}) \<Longrightarrow>
+    \<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
+    \<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors) \<Longrightarrow>
     I0 \<in> AG {x. global_policy x ''Eve''}\<close>
   proof (unfold AG_def, simp add: gfp_def,
          rule_tac x = "{(x :: infrastructure) \<in> { I. I0 \<rightarrow>\<^sub>n* I }. ~(''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}" in exI,
          rule conjI)
-    show \<open>2 \<le> card (set (agra (graphI I0) cockpit)) \<Longrightarrow>
-    (\<exists>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*) \<longrightarrow> 2 \<le> length (agra (graphI I') cockpit) \<Longrightarrow>
+    show \<open>foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0}) \<Longrightarrow>
+    \<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
+    \<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors) \<Longrightarrow>
     {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> {x. global_policy x ''Eve''}\<close>
       sorry
+  next show \<open>foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0}) \<Longrightarrow>
+    \<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
+    \<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors) \<Longrightarrow>
+    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> AX {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<and>
+    I0 \<in> {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit}\<close>
+      sorry
+  qed
+qed
 
 (*
 theorem Gen_policy: 
