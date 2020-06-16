@@ -2053,8 +2053,47 @@ proof (simp add: check_def state_transition_in_refl_def)
     \<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors) \<Longrightarrow>
     {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)} \<subseteq> AX {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)} \<and>
     I0 \<in> {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}\<close>
-      sorry
+    proof
+      show \<open>foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0}) \<Longrightarrow>
+    \<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
+    \<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors) \<Longrightarrow>
+    I0 \<in> {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit}\<close>
+        by (metis (no_types, lifting) Gen_Eve_not_in_cockpit atI_def mem_Collect_eq rtrancl.intros(1) state_transition_in_refl_def)
+    next show \<open>foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0}) \<Longrightarrow>
+    \<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
+    \<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors) \<Longrightarrow>
+    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> AX {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<close> 
+    proof (rule subsetI, simp add: AX_def, rule subsetI, rule CollectI, rule conjI)
+      show \<open>\<And>x xa.
+       foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0}) \<Longrightarrow>
+       \<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
+       \<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors) \<Longrightarrow>
+       I0 \<rightarrow>\<^sub>n* x \<and> \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> I0 \<rightarrow>\<^sub>n* xa\<close>
+        by (simp add: state_transition_in_refl_def, simp add: atI_def, erule conjE,
+            unfold state_transition_infra_def state_transition_in_refl_def,
+            erule rtrancl_into_rtrancl, rule CollectI, simp)
+    next fix x xa
+      assume f: \<open>foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0})\<close>
+         and c: \<open>\<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<close>
+         and h: \<open>\<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors)\<close>
+         and a0: \<open>I0 \<rightarrow>\<^sub>n* x \<and> \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit \<close>
+         and a1: \<open>xa \<in> Collect ((\<rightarrow>\<^sub>i) x)\<close>
+      show \<open>\<not> ''Eve'' @\<^bsub>graphI xa\<^esub> cockpit \<close>
+      proof -
+        have b: \<open>(I0, xa) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
+        proof (insert a0 a1, rule rtrancl_trans)
+          show  \<open>I0 \<rightarrow>\<^sub>n* x \<and> \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> (x, xa) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
+            by (unfold state_transition_infra_def, force)
+        next show \<open>I0 \<rightarrow>\<^sub>n* x \<and> \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> (I0, x) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
+            by (erule conjE, simp add: state_transition_in_refl_def)+
+        qed
+        show ?thesis 
+          by (insert a0 a1 b, rule_tac P = "''Eve'' @\<^bsub>graphI xa\<^esub> cockpit" in notI, 
+             simp add: atI_def, drule Gen_Eve_not_in_cockpit, rule h, assumption, simp)
   qed
+qed
+qed
+qed
 qed
 
 end
