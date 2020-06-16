@@ -2057,18 +2057,18 @@ proof (simp add: check_def state_transition_in_refl_def)
       show \<open>foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0}) \<Longrightarrow>
     \<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
     \<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors) \<Longrightarrow>
-    I0 \<in> {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit}\<close>
+    I0 \<in> {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)}\<close>
         by (metis (no_types, lifting) Gen_Eve_not_in_cockpit atI_def mem_Collect_eq rtrancl.intros(1) state_transition_in_refl_def)
     next show \<open>foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0}) \<Longrightarrow>
     \<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
     \<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors) \<Longrightarrow>
-    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<subseteq> AX {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit} \<close> 
+    {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)} \<subseteq> AX {x \<in> {I. I0 \<rightarrow>\<^sub>n* I}. \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit)} \<close> 
     proof (rule subsetI, simp add: AX_def, rule subsetI, rule CollectI, rule conjI)
       show \<open>\<And>x xa.
        foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0}) \<Longrightarrow>
        \<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<Longrightarrow>
        \<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors) \<Longrightarrow>
-       I0 \<rightarrow>\<^sub>n* x \<and> \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> I0 \<rightarrow>\<^sub>n* xa\<close>
+       (I0 \<rightarrow>\<^sub>n* x) \<and> \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit) \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> I0 \<rightarrow>\<^sub>n* xa\<close>
         by (simp add: state_transition_in_refl_def, simp add: atI_def, erule conjE,
             unfold state_transition_infra_def state_transition_in_refl_def,
             erule rtrancl_into_rtrancl, rule CollectI, simp)
@@ -2076,15 +2076,15 @@ proof (simp add: check_def state_transition_in_refl_def)
       assume f: \<open>foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0})\<close>
          and c: \<open>\<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<close>
          and h: \<open>\<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors)\<close>
-         and a0: \<open>I0 \<rightarrow>\<^sub>n* x \<and> \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit \<close>
+         and a0: \<open>(I0 \<rightarrow>\<^sub>n* x) \<and> \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit) \<close>
          and a1: \<open>xa \<in> Collect ((\<rightarrow>\<^sub>i) x)\<close>
-      show \<open>\<not> ''Eve'' @\<^bsub>graphI xa\<^esub> cockpit \<close>
+      show \<open>\<not> (''Eve'' @\<^bsub>graphI xa\<^esub> cockpit)\<close>
       proof -
         have b: \<open>(I0, xa) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
         proof (insert a0 a1, rule rtrancl_trans)
-          show  \<open>I0 \<rightarrow>\<^sub>n* x \<and> \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> (x, xa) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
+          show  \<open>(I0 \<rightarrow>\<^sub>n* x) \<and> \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit) \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> (x, xa) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
             by (unfold state_transition_infra_def, force)
-        next show \<open>I0 \<rightarrow>\<^sub>n* x \<and> \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> (I0, x) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
+        next show \<open>(I0 \<rightarrow>\<^sub>n* x) \<and> \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit) \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> (I0, x) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
             by (erule conjE, simp add: state_transition_in_refl_def)+
         qed
         show ?thesis 
@@ -2095,6 +2095,17 @@ qed
 qed
 qed
 qed
+
+text\<open>Now we show that we can use the generic theorem Gen_policy to infer again the theorem 
+     @{text \<open>Four_eyes_no_danger\<close>}. Applying the generic theorem to proving the
+     global policy for the special case @{text \<open>Air_tp_Kripke\<close>} immediately reduces to
+     the subgoals of the locale assumption @{text cockpit_foe_control}, the previously proved
+     lemma @{text \<open>two_person_set_inv\<close>}, and the also previously proved lemma 
+     @{text \<open>airplane_actors_inv\<close>} and solves the proof of the theorem immediately.}\<close>
+theorem Four_eyes_no_danger': "Air_tp_Kripke \<turnstile> AG ({x. global_policy x ''Eve''})"
+  unfolding Air_tp_Kripke_def Air_tp_states_def
+  by (rule Gen_policy, fold Air_tp_Kripke_def Air_tp_states_def, rule cockpit_foe_control,
+         simp add: two_person_set_inv, simp add: airplane_actors_inv)
 
 end
 
