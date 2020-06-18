@@ -2076,15 +2076,15 @@ proof (simp add: check_def state_transition_in_refl_def)
       assume f: \<open>foe_control cockpit put (Kripke {I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*} {I0})\<close>
          and c: \<open>\<forall>I. (I0, I) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> 2 \<le> card (set (agra (graphI I) cockpit)) \<close>
          and h: \<open>\<forall>z. (I0, z) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>* \<longrightarrow> (\<forall>h\<in>set (agra (graphI z) cockpit). h \<in> airplane_actors)\<close>
-         and a0: \<open>I0 \<rightarrow>\<^sub>n* x \<and> \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit \<close>
+         and a0: \<open>(I0 \<rightarrow>\<^sub>n* x) \<and> \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit) \<close>
          and a1: \<open>xa \<in> Collect ((\<rightarrow>\<^sub>i) x)\<close>
-      show \<open>\<not> ''Eve'' @\<^bsub>graphI xa\<^esub> cockpit \<close>
+      show \<open>\<not> (''Eve'' @\<^bsub>graphI xa\<^esub> cockpit) \<close>
       proof -
         have b: \<open>(I0, xa) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
         proof (insert a0 a1, rule rtrancl_trans)
-          show  \<open>I0 \<rightarrow>\<^sub>n* x \<and> \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> (x, xa) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
+          show  \<open>(I0 \<rightarrow>\<^sub>n* x) \<and> \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit) \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> (x, xa) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
             by (unfold state_transition_infra_def, force)
-        next show \<open>I0 \<rightarrow>\<^sub>n* x \<and> \<not> ''Eve'' @\<^bsub>graphI x\<^esub> cockpit \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> (I0, x) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
+        next show \<open>(I0 \<rightarrow>\<^sub>n* x) \<and> \<not> (''Eve'' @\<^bsub>graphI x\<^esub> cockpit) \<Longrightarrow> xa \<in> Collect ((\<rightarrow>\<^sub>i) x) \<Longrightarrow> (I0, x) \<in> {(x, y). x \<rightarrow>\<^sub>n y}\<^sup>*\<close>
             by (erule conjE, simp add: state_transition_in_refl_def)+
         qed
         show ?thesis 
