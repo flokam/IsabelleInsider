@@ -2096,12 +2096,12 @@ qed
 qed
 qed
 
-text\<open>Now we show that we can use the generic theorem Gen_policy to infer again the theorem 
+text\<open>Now we show that we can use the generic theorem @{text \<open>Gen_policy\<close>} to infer again the theorem 
      @{text \<open>Four_eyes_no_danger\<close>}. Applying the generic theorem to proving the
      global policy for the special case @{text \<open>Air_tp_Kripke\<close>} immediately reduces to
-     the subgoals of the locale assumption @{text cockpit_foe_control}, the previously proved
+     the subgoals of the locale assumption @{text \<open>cockpit_foe_control\<close>}, the previously proved
      lemma @{text \<open>two_person_set_inv\<close>}, and the also previously proved lemma 
-     @{text \<open>airplane_actors_inv\<close>} and solves the proof of the theorem immediately.}\<close>
+     @{text \<open>airplane_actors_inv\<close>} and solves the proof of the theorem immediately.\<close>
 theorem Four_eyes_no_danger': "Air_tp_Kripke \<turnstile> AG ({x. global_policy x ''Eve''})"
   unfolding Air_tp_Kripke_def Air_tp_states_def
   by (rule Gen_policy, fold Air_tp_Kripke_def Air_tp_states_def, rule cockpit_foe_control,
