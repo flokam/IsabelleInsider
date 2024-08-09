@@ -1,6 +1,8 @@
-This is a the Isabelle Insider framework based on Kripke 
+This is an old version of the Isabelle Insider framework based on Kripke 
 structures and modelchecking applied to the Airplane case study.
 
 - in a shell, for example bash-3.2 in my case, execute 
   bash-3.2$ isabelle build -D .
 
+For the current updated versions pelase refer to 
+https://gitlab.com/falkam/IIIf
